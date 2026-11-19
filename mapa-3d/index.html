@@ -152,7 +152,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 <div id="app">
   <canvas id="scene" aria-label="Mapa 3D interactivo de Puerto Rico con relieve y sus 78 municipios"></canvas>
   <div id="labels" aria-hidden="true"></div>
-  <div id="loading">Cargando relieve…</div>
+  <div id="loading">Cargando mapa…</div>
 
   <header id="finder" class="panel">
     <div class="brand"><h1>Puerto Rico</h1><span class="eyebrow">78 municipios</span></div>
@@ -204,7 +204,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
   <div id="credit">Límites: U.S. Census Bureau · Sectores: © OpenStreetMap · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
   <div id="tip" hidden></div>
-  <div id="hint" class="panel" aria-live="polite"></div>
+  <div id="hint" class="panel" aria-live="polite" hidden></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -218,11 +218,29 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   THREE.ColorManagement.legacyMode = false;   // colores CSS en sRGB → lineal
 
   // ---------- Carga de datos ----------
-  const loadImg = src => new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => fail(new Error(src)); im.src = src; });
+  // Carga con reintentos: una red móvil inestable no debe dejar el mapa en blanco
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  async function retry(fn, label, tries = 4) {
+    for (let k = 1; ; k++) {
+      try { return await fn(); }
+      catch (e) { if (k >= tries) { e.file = label; throw e; } await wait(600 * k); }
+    }
+  }
+  const getJSON = url => retry(async () => { const r = await fetch(url, { cache: 'no-cache' }); if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }, url);
+  const loadImg = src => retry(() => new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => fail(new Error('imagen')); im.src = src; }), src);
   let DATA, texImg, hmImg;
   try {
-    [DATA, texImg, hmImg] = await Promise.all([fetch('data/municipios.json').then(r => r.json()), loadImg('data/relieve.webp'), loadImg('data/alturas.png')]);
-  } catch (e) { $('loading').textContent = 'No se pudieron cargar los datos del mapa.'; return; }
+    [DATA, texImg, hmImg] = await Promise.all([getJSON('data/municipios.json'), loadImg('data/relieve.webp'), loadImg('data/alturas.png')]);
+  } catch (e) {
+    const box = $('loading'); box.textContent = '';
+    const w = document.createElement('div'); w.style.cssText = 'display:grid;gap:10px;justify-items:center;text-align:center;padding:0 24px';
+    const t = document.createElement('div'); t.textContent = 'No se pudieron cargar los datos del mapa. Revisa la conexión e inténtalo de nuevo.';
+    const d = document.createElement('small'); d.style.opacity = '.7'; d.textContent = `${e.file || ''} ${e.message || ''}`.trim();
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Reintentar';
+    b.style.cssText = 'font:600 14px var(--f-body);padding:10px 18px;border-radius:10px;border:0;background:#13262b;color:#fff;cursor:pointer';
+    b.addEventListener('click', () => location.reload());
+    w.append(t, d, b); box.append(w); return;
+  }
   const byId = new Map(DATA.map((m, i) => [m.id, i]));
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const hexRGB = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
@@ -1034,7 +1052,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const hint = $('hint'), coarse = matchMedia('(pointer: coarse)').matches;
   const setHint = () => { hint.textContent = (coarse ? 'Arrastra para mover · pellizca para acercar' : 'Arrastra para mover · rueda para acercar')
     + (is3D ? (coarse ? ' · gira e inclina con dos dedos' : ' · clic derecho o Shift + arrastrar para girar') : ' · activa 3D para inclinar'); };
-  setHint();
+  setHint(); hint.hidden = false;
   const hideHint = () => hint.classList.add('out');
   { const tr = $('tools').getBoundingClientRect(), a = app.getBoundingClientRect(); hint.style.bottom = `${a.bottom - tr.top + 10}px`; }
   controls.addEventListener('start', hideHint); setTimeout(hideHint, 9000);
