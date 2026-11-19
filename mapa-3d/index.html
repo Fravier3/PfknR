@@ -14,7 +14,7 @@
   --bg: #dfe9ea; --ink: #13262b; --muted: #55686c; --panel: rgba(248, 251, 250, .9); --line: rgba(19, 38, 43, .14);
   /* colores de la escena 3D: iguales en tema claro y oscuro (el mapa siempre se ve claro) */
   --deep: #1d6f9c; --shallow: #5fcdd0; --fog: #d5e7eb;
-  --border: #ffffff; --island: #6f985f; --island-side: #c9b48a;
+  --border: #111a16; --island: #6f985f; --island-side: #c9b48a;
   --accent: #e4502a;
   --f-display: "Sora", "Segoe UI", system-ui, sans-serif;
   --f-body: "Inter", system-ui, -apple-system, sans-serif;
@@ -96,6 +96,7 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
 #coord { font: 400 11.5px var(--f-mono); color: var(--muted); padding: 0 8px; font-variant-numeric: tabular-nums; min-width: 24ch; }
 
 #legend { right: max(16px, env(safe-area-inset-right, 0px)); bottom: 52px; padding: 12px 14px; z-index: 2; display: grid; gap: 7px; min-width: 170px; }
+#app.has-sel #legend { display: none; }
 #legend .t { font: 500 10.5px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
 #legend button { display: flex; align-items: center; gap: 8px; font: 500 13px var(--f-body); color: var(--ink); background: transparent; border: 0; padding: 2px 0; cursor: pointer; text-align: left; }
 #legend button span.n { margin-left: auto; font: 400 11px var(--f-mono); color: var(--muted); }
@@ -129,7 +130,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #app.has-sel #hint { display: none; }
   #info h2 { font-size: 22px; }
   #tools { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-  #app.has-sel #tools, #app.has-sel #legend, #coord, #tip { display: none; }
+  #app.has-sel #tools, #coord, #tip { display: none; }
   #legend { left: max(16px, env(safe-area-inset-left, 0px)); right: auto; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); grid-template-columns: 1fr 1fr; column-gap: 14px; }
   #legend .t { grid-column: 1 / -1; }
 }
@@ -362,19 +363,23 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const IW = 2048, IH = Math.round(2048 * TH / TW);
   const idC = document.createElement('canvas'); idC.width = IW; idC.height = IH;
   const idCtx = idC.getContext('2d', { willReadFrequently: true });
-  idCtx.fillStyle = '#000'; idCtx.fillRect(0, 0, IW, IH);
-  DATA.forEach((m, i) => { idCtx.fillStyle = `rgb(${i + 1},0,0)`; idCtx.beginPath();
-    m.polys.forEach(p => p.forEach(r => r.forEach(([lon, lat], k) => { const x = (lon - RB.w) / (RB.e - RB.w) * IW, y = (RB.n - lat) / (RB.n - RB.s) * IH; k ? idCtx.lineTo(x, y) : idCtx.moveTo(x, y); })));
-    idCtx.fill('evenodd'); });
+  // Identificador de municipio: rojo = (índice+1)*3 sobre fondo transparente; los bordes semitransparentes se descartan
+  const muniPath = (ctx, m, W, H) => { ctx.beginPath();
+    m.polys.forEach(p => p.forEach(r => r.forEach(([lon, lat], k) => { const x = (lon - RB.w) / (RB.e - RB.w) * W, y = (RB.n - lat) / (RB.n - RB.s) * H; k ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }))); };
+  DATA.forEach((m, i) => { idCtx.fillStyle = `rgb(${(i + 1) * 3},0,0)`; muniPath(idCtx, m, IW, IH); idCtx.fill('evenodd'); });
+  { const im = idCtx.getImageData(0, 0, IW, IH), d = im.data;
+    for (let k = 0; k < d.length; k += 4) { d[k] = d[k + 3] < 160 ? 0 : Math.round(d[k] / 3) * 3; d[k + 1] = d[k + 2] = 0; d[k + 3] = 255; }
+    idCtx.putImageData(im, 0, 0); }
   const idPx = idCtx.getImageData(0, 0, IW, IH).data;
+  const idOf = v => Math.round(v / 3) - 1;
   const idTex = new THREE.CanvasTexture(idC); idTex.minFilter = idTex.magFilter = THREE.NearestFilter; idTex.generateMipmaps = false;
   // Regiones (según el mapa de referencia): color por municipio en una textura de 256×1
   const REGIONS = [['Noroeste', '#ee9b9b'], ['Oeste', '#bba9ef'], ['Montaña', '#a6eab0'], ['Norte central', '#8fd2f5'], ['Sur', '#f5bb7f'], ['Este', '#f3ee9e']];
   const regColor = new Map(REGIONS);
-  const regData = new Uint8Array(256 * 4);
-  DATA.forEach((m, i) => { const [r, g, b] = hexRGB(regColor.get(m.region) || '#ffffff'); regData.set([r, g, b, 255], i * 4); });
-  const regTex = new THREE.DataTexture(regData, 256, 1, THREE.RGBAFormat); regTex.encoding = THREE.sRGBEncoding;
-  regTex.minFilter = regTex.magFilter = THREE.NearestFilter; regTex.needsUpdate = true;
+  const regC = document.createElement('canvas'); regC.width = IW; regC.height = IH;
+  { const c = regC.getContext('2d');
+    DATA.forEach(m => { c.fillStyle = c.strokeStyle = regColor.get(m.region) || '#ffffff'; c.lineWidth = 1.5; muniPath(c, m, IW, IH); c.fill('evenodd'); c.stroke(); }); }
+  const regTex = new THREE.CanvasTexture(regC); regTex.encoding = THREE.sRGBEncoding;
   const uni = { barMap: { value: null }, barIdMap: { value: null }, barBox: { value: new THREE.Vector4(0, 0, 1, 1) }, barOn: { value: 0 }, hovBar: { value: -1 }, selBar: { value: -1 },
     solidOn: { value: 0 }, solidGreen: { value: new THREE.Color('#6cad5c') },
     idMap: { value: idTex }, regMap: { value: regTex }, regionOn: { value: 0 }, selId: { value: -1 }, hovId: { value: -1 }, accent: { value: new THREE.Color() } };
@@ -382,14 +387,16 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   terrainMat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, uni);
     sh.fragmentShader = 'uniform sampler2D barMap; uniform sampler2D barIdMap; uniform vec4 barBox; uniform float barOn; uniform float hovBar; uniform float selBar;\nuniform float solidOn; uniform vec3 solidGreen;\nuniform sampler2D idMap; uniform sampler2D regMap; uniform float regionOn; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
-      float mid = floor(texture2D(idMap, vUv).r * 255.0 + 0.5) - 1.0;
-      if (regionOn > 0.5 && mid >= 0.0) {
-        vec3 rc = texture2D(regMap, vec2((mid + 0.5) / 256.0, 0.5)).rgb;
-        float l = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
-        diffuseColor.rgb = mix(diffuseColor.rgb, rc * (0.55 + 2.2 * l), 0.72);
+      float mid = floor(texture2D(idMap, vUv).r * 255.0 / 3.0 + 0.5) - 1.0;
+      float l = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));   // luz del relieve original
+      if (solidOn > 0.5) diffuseColor.rgb = solidGreen;
+      vec4 rcol = texture2D(regMap, vUv);
+      if (regionOn > 0.5 && rcol.a > 0.5) {
+        vec3 rc = rcol.rgb;
+        // en modo sólido el color de la región va plano; con relieve conserva el sombreado
+        diffuseColor.rgb = solidOn > 0.5 ? rc : mix(diffuseColor.rgb, rc * (0.55 + 2.2 * l), 0.72);
       }
       bool inBar = false;
-      if (solidOn > 0.5) diffuseColor.rgb = solidGreen;
       if (barOn > 0.5) {
         vec2 bl = (vUv - barBox.xy) / (barBox.zw - barBox.xy);
         if (bl.x >= 0.0 && bl.y >= 0.0 && bl.x <= 1.0 && bl.y <= 1.0) {
@@ -397,8 +404,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
           if (bc.a > 0.5) {
             inBar = true;
             float bid = floor(texture2D(barIdMap, bl).r * 255.0 + 0.5) - 1.0;
-            float l = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
-            vec3 c = bc.rgb * (0.5 + 2.4 * l);
+            vec3 c = solidOn > 0.5 ? bc.rgb : bc.rgb * (0.5 + 2.4 * l);
             if (abs(bid - selBar) < 0.5) c = mix(c, vec3(1.0), 0.35);
             else if (abs(bid - hovBar) < 0.5) c = mix(c, vec3(1.0), 0.22);
             diffuseColor.rgb = mix(diffuseColor.rgb, c, 0.8);
@@ -445,7 +451,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       } } });
     return { isl, pts };
   }
-  const bordersMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.6, depthWrite: false });
+  const bordersMat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0.75, depthWrite: false });
   const selLineMat = new THREE.LineBasicMaterial({ depthWrite: false });
   const mkLines = (arr, mat, ro) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); const l = new THREE.LineSegments(g, mat); l.renderOrder = ro; return l; };
   function buildLines(polys, lift) { const main = [], isl = []; polys.forEach(p => { const d = draped(p, lift); (d.isl ? isl : main).push(...d.pts); }); return { main, isl }; }
@@ -470,7 +476,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   { const best = new Float32Array(DATA.length);
     for (let j = 0; j < hmH; j++) for (let i = 0; i < hmW; i++) {
       const h = HM[j * hmW + i]; if (!h) continue;
-      const id = idPx[((j / hmH * IH | 0) * IW + (i / hmW * IW | 0)) * 4] - 1;
+      const id = idOf(idPx[((j / hmH * IH | 0) * IW + (i / hmW * IW | 0)) * 4]);
       if (id >= 0 && h > best[id]) best[id] = h;
     }
     DATA.forEach((m, i) => { m.maxAlt = m.island ? null : Math.round(best[i] * 100) * 10; }); }
@@ -610,7 +616,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 
   // ---------- Barrios (TIGER 2014 del Censo; se cargan al seleccionar un municipio) ----------
   const BAR = { list: [], labels: [], lines: [], sel: -1, hov: -1, cache: new Map(), req: 0, fips: null };
-  const barLineMat = new THREE.LineBasicMaterial({ color: 0x10201a, transparent: true, opacity: 0.6, depthWrite: false });
+  const barLineMat = new THREE.LineBasicMaterial({ color: 0x0b120f, transparent: true, opacity: 0.85, depthWrite: false });
   const barLineSelMat = new THREE.LineBasicMaterial({ color: 0xffffff, depthWrite: false });
   // Paleta común para todos los municipios; `c` viene precalculado para que barrios vecinos no repitan color
   const BAR_PALETTE = ['#f2a7a0', '#9fd0ef', '#b5e39b', '#f6d27f', '#c7b2f0', '#f3b5d6', '#93ddc9', '#e9c29a', '#d6e48a', '#a9b9f2'];
@@ -782,7 +788,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const [lon, lat] = unproj(x, y);
     const u = (lon - RB.w) / (RB.e - RB.w), v = (RB.n - lat) / (RB.n - RB.s);
     if (u < 0 || u >= 1 || v < 0 || v >= 1 || !landAt(lon, lat)) return -1;
-    return idPx[((v * IH | 0) * IW + (u * IW | 0)) * 4] - 1;
+    return idOf(idPx[((v * IH | 0) * IW + (u * IW | 0)) * 4]);
   }
   const below = t => { P.copy(ray.ray.direction).multiplyScalar(t).add(ray.ray.origin); return P.y <= hAt(P.x, -P.z) * EX; };
   function pick(e) {
