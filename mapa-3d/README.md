@@ -1,76 +1,74 @@
 # Mapa 3D de Puerto Rico
 
-Mapa 3D interactivo (Three.js 0.147) de Puerto Rico con relieve y los 78 municipios. Se puede hacer clic en cada pueblo, buscarlo por nombre y ver su ficha: código FIPS, área de tierra y de agua, altura máxima aproximada y colindancias.
+Mapa interactivo (Three.js 0.147) de Puerto Rico con relieve, los 78 municipios, sus 902 barrios y las 175 comunidades del Censo. Al tocar un municipio se ve su ficha y sus barrios pintados; dentro se puede tocar cada barrio o comunidad.
 
-## Archivos
+## Vistas
 
-- `index.html`: la página completa. Necesita servirse por HTTP (GitHub Pages o `python3 -m http.server`), porque carga los archivos de `data/`.
-- `app.html`: la misma página en formato de Artifact de claude.ai (sin `<html>/<head>`).
-- `data/municipios.json`: límites detallados de los 78 municipios.
-- `data/relieve.webp`: textura de relieve de la isla grande, 4096 px, con transparencia fuera de la costa.
-- `data/alturas.png`: mapa de alturas en escala de grises (negro = 0 m, blanco = 1,340 m), 1538 × 592 px, misma extensión que la textura.
-- `data/barrios/<FIPS>.json`: los barrios de cada municipio (902 en total). Se cargan solo cuando se selecciona el municipio.
-- `scripts/`: scripts que generaron los datos (`municipios.js` con Node, `relieve.py` con Python + Pillow + NumPy).
-
-Extensión de la textura y del mapa de alturas: lat 17.8789 a 18.5174, lon −67.2726 a −65.5265.
+- **Plano** (por defecto): vista desde arriba, norte arriba; solo se mueve y se acerca.
+- **3D**: permite inclinar y girar; aparecen "Girar" (giro automático) y el control de relieve (×1 a ×8).
+- **Sólido**: quita texturas y relieve; la tierra queda verde sólido y el mar azul liso. Se combina con plano o 3D.
+- **Nombres**, **Límites** y **Regiones** son capas que se prenden y apagan.
 
 ## Navegación
 
-- Teléfono: un dedo mueve el mapa; dos dedos acercan, alejan y giran.
-- Ratón: arrastrar mueve; la rueda acerca; botón derecho o Shift + arrastrar gira.
-- Al seleccionar un municipio, la cámara lo encuadra en la parte de la pantalla que no tapa la ficha (`camera.setViewOffset`). En el teléfono la ficha abre compacta; el botón "Detalles" la expande.
+- Teléfono: un dedo mueve el mapa; dos dedos acercan (y en 3D, giran e inclinan).
+- Ratón: arrastrar mueve; la rueda acerca; en 3D, botón derecho o Shift + arrastrar gira.
+- Al seleccionar un municipio, la cámara lo encuadra en la parte de la pantalla que no tapa la ficha (`camera.setViewOffset`). En el teléfono la ficha abre compacta; "Detalles" la expande.
 - El mapa siempre se ve claro, aunque el sistema esté en modo oscuro; solo los paneles siguen el tema.
 
-## Datos de `municipios.json`
+## Archivos
 
-Un arreglo de 78 objetos, en orden alfabético:
+- `index.html`: la página completa. Se sirve por HTTP (GitHub Pages o `python3 -m http.server`), porque carga `data/`.
+- `app.html`: la misma página en formato de Artifact de claude.ai (sin `<html>/<head>`).
+- `data/municipios.json`: los 78 municipios.
+- `data/barrios/<FIPS>.json`: barrios de cada municipio. Se cargan al seleccionar el municipio.
+- `data/comunidades/<FIPS>.json`: comunidades del Censo de cada municipio.
+- `data/relieve.webp`, `data/alturas.png`: textura y mapa de alturas de la isla grande (lat 17.8789–18.5174, lon −67.2726 a −65.5265; negro = 0 m, blanco = 1,340 m).
+- `referencia/`: imágenes de referencia (regiones y barrios de Cayey).
+- `scripts/`: cómo se generaron los datos (ver abajo).
 
-| Campo | Qué es |
-|---|---|
-| `id` | Código FIPS de 5 dígitos (`72` + código del municipio) |
-| `name` | Nombre oficial con acentos |
-| `areaKm2`, `aguaKm2` | Área de tierra y de agua en km² (Censo) |
-| `polys` | Polígonos en `[lon, lat]`; varios cuando el municipio tiene islas o cayos |
-| `label` | Punto interior para la etiqueta, `[lon, lat]` |
-| `nb` | Códigos FIPS de los municipios colindantes |
-| `region` | Una de 6 regiones: Noroeste, Oeste, Montaña, Norte central, Sur, Este |
+### `municipios.json`
 
-## Barrios
+`{ id, name, areaKm2, aguaKm2, region, polys, label, nb }`: FIPS, nombre, área de tierra y agua (Censo), región, polígonos `[lon, lat]`, punto para la etiqueta y FIPS de los colindantes.
 
-Al seleccionar un municipio se cargan sus barrios: cada uno se colorea sobre el relieve, con su límite y su nombre. Se pueden tocar en el mapa o en la lista de la ficha.
+### `barrios/<FIPS>.json`
 
-Cada archivo `data/barrios/<FIPS>.json` es un arreglo de `{ id, name, pueblo, areaKm2, polys, label, color? }`. `pueblo: true` marca el barrio-pueblo (el casco urbano). Fuente: U.S. Census Bureau, TIGER 2014, subdivisiones de condado de Puerto Rico (dominio público), vía `boundaryissues/TIGER2014`, simplificadas a ~4 m (`scripts/barrios.py`).
+`{ id, name, pueblo, areaKm2, c, polys, label }`. `pueblo: true` marca el barrio-pueblo (casco urbano). `c` es el índice de color en la paleta común (`BAR_PALETTE` en `app.html`); dos barrios vecinos nunca comparten color.
 
-Cayey usa los colores de la foto de referencia `referencia/cayey-barrios.jpg` (`scripts/colores/72035.json`). Los límites del Censo coinciden con los de esa foto; dos nombres difieren y se usan los oficiales: la zona verde que la foto llama "Quebrada Abajo" es **Culebras Bajo**, y la rosada que llama "Culebras Abajo" es **Culebras Alto**. Los demás municipios reciben colores automáticos; para fijar colores de otro, crea `scripts/colores/<FIPS>.json` y vuelve a correr `barrios.py`.
+### `comunidades/<FIPS>.json`
 
-## Regiones
+`{ id, name, areaKm2, polys, label }`. Son "comunidades" del Censo (lugares designados), no barrios legales. Ejemplo: **Corazón** es una comunidad de Guayama; los barrios legales de Guayama son 10.
 
-Las 6 regiones salen del mapa de referencia `referencia/mapa-regiones.png`. Los nombres de las regiones son descriptivos (el mapa no los trae). La asignación está en `scripts/regiones.js`; para cambiar un municipio de región, edita ese archivo y corre `node scripts/regiones.js`.
+## Cómo encajan las líneas y los colores
+
+Municipios, barrios y comunidades salen de la misma fuente (TIGER 2014). Los barrios se simplifican juntos con `shapely.coverage_simplify` (~8 m), así las fronteras compartidas son idénticas, y cada municipio es la unión exacta de sus barrios. Los polígonos de TIGER incluyen el mar territorial, por eso se recortan con la costa del Censo 1:500k más un margen de 150 m que el relieve recorta exactamente. El color de cada barrio se pinta en una textura de 2048 px sobre el municipio, así llega hasta la línea límite.
+
+## Generar los datos
+
+1. `node scripts/municipios.js <carpeta GeoJSON 500k> data/municipios.json`: lista base (nombres, áreas) desde `hyperknot/country-levels-export`.
+2. `node scripts/regiones.js data/municipios.json`: asigna las 6 regiones del mapa de referencia.
+3. `python3 scripts/geo.py <TIGER2014> data <carpeta GeoJSON 500k>`: geometría de municipios, barrios y comunidades (requiere shapely ≥ 2.1). Usa `cousub/PR`, `place/PR` de `boundaryissues/TIGER2014`.
+4. `python3 scripts/relieve.py <dem.webp> data`: textura y alturas.
 
 ## Fuentes
 
-- Límites: U.S. Census Bureau, límites cartográficos de condados (escala 1:500,000), en la versión GeoJSON de `hyperknot/country-levels-export`. Los límites legales incluyen aguas costeras; el mapa solo dibuja las líneas sobre tierra.
-- Relieve: la imagen `dem.webp` del repositorio público `izette1/SWCI`, hecha con un modelo de elevación de 30 m de Puerto Rico (USGS). Ese repositorio no declara licencia. Para una app pública conviene regenerar la textura directamente desde el DEM del USGS (dominio público).
-- Las alturas se estiman a partir de los colores de esa imagen y se calibran con Cerro de Punta (1,338 m). La forma de las montañas es real; los valores en metros son aproximados.
-- Vieques, Culebra, Mona y los cayos no están en la imagen de relieve y se muestran como islas planas.
+- Límites: U.S. Census Bureau, TIGER 2014 (dominio público) y límites cartográficos 1:500k.
+- Relieve: imagen `dem.webp` del repositorio público `izette1/SWCI`, hecha con un DEM de 30 m del USGS. Ese repositorio no declara licencia; para una app pública conviene regenerarla desde el DEM del USGS (dominio público).
+- Las alturas se estiman por el color de esa imagen, calibradas con Cerro de Punta (1,338 m): la forma es real, los metros son aproximados.
 
-## Para conectarlo con la app
+## API para la app
 
 ```js
 PRMap.select('Ponce');          // o por FIPS: PRMap.select('72113')
+PRMap.selectBarrio('Toíta');    // dentro del municipio seleccionado
+PRMap.barrios;                  // barrios del municipio seleccionado
 PRMap.clear();
 PRMap.reset();                  // vista inicial
+PRMap.showRegions(true);
+PRMap.regions;                  // [{ name, color, municipios }]
 PRMap.heightAt(-66.59, 18.17);  // altura aproximada en metros
-PRMap.selectBarrio('Toíta');   // dentro del municipio seleccionado
-PRMap.barrios;                  // barrios del municipio seleccionado
-PRMap.showRegions(true);        // colorea por regiones
-PRMap.regions;                  // [{ name, color, municipios: [...] }]
-PRMap.data;                     // el arreglo de municipios.json
+PRMap.data;                     // municipios
 
-window.addEventListener('municipio:select', e => {
-  console.log(e.detail);        // { id, name } o null al deseleccionar
-});
-window.addEventListener('barrio:select', e => {
-  console.log(e.detail);        // { municipio, id, name, pueblo }
-});
+window.addEventListener('municipio:select', e => console.log(e.detail)); // { id, name } o null
+window.addEventListener('barrio:select', e => console.log(e.detail));    // { municipio, id, name, pueblo }
 ```

@@ -73,6 +73,11 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
 #bars button { display: inline-flex; align-items: center; gap: 6px; font: 500 12px var(--f-body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; cursor: pointer; }
 #bars button:hover, #bars button.on { border-color: var(--accent); color: var(--accent); }
 #bars .sw { width: 9px; height: 9px; border-radius: 50%; }
+#coms { display: flex; flex-wrap: wrap; gap: 5px; }
+#coms button { font: italic 500 12px var(--f-body); color: var(--ink); background: transparent; border: 1px dashed var(--line); border-radius: 999px; padding: 4px 9px; cursor: pointer; }
+#coms button:hover, #coms button.on { border-color: var(--accent); color: var(--accent); }
+.lbl.com { font-style: italic; font-size: 11.5px; color: #fff; }
+#tools .sep { width: 1px; align-self: stretch; background: var(--line); margin: 4px 2px; }
 .bar-sel { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 9px; background: color-mix(in srgb, var(--accent) 12%, transparent); font: 600 14px var(--f-body); }
 .bar-sel small { font: 400 11.5px var(--f-mono); color: var(--muted); }
 
@@ -111,7 +116,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #list { max-height: 34vh; }
   #info { top: auto; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: 58vh; overflow-y: auto; gap: 10px; padding: 12px 14px; }
   #info.compact { gap: 6px; }
-  #info.compact > dl.stats, #info.compact > .nb-title, #info.compact > #nbs, #info.compact > #bars { display: none !important; }
+  #info.compact > dl.stats, #info.compact > .nb-title, #info.compact > #nbs, #info.compact > #bars, #info.compact > #coms { display: none !important; }
   #info.compact .sum { display: block; margin: 0; font: 500 13px var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
   #info .reg { margin-top: 3px; }
   #more { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 500 12.5px var(--f-body); cursor: pointer; }
@@ -154,15 +159,20 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <div class="nb-title" id="bars-title" hidden>Barrios</div>
     <div class="bar-sel" id="bar-sel" hidden><span id="bar-name"></span><small id="bar-area"></small></div>
     <div id="bars"></div>
+    <div class="nb-title" id="coms-title" hidden>Comunidades</div>
+    <div id="coms"></div>
   </section>
 
   <div id="tools" class="panel">
+    <button id="t-3d" type="button" aria-pressed="false" title="Inclinar y girar el mapa">3D</button>
+    <button id="t-solid" type="button" aria-pressed="false" title="Mapa verde sólido, sin texturas ni relieve">Sólido</button>
+    <span class="sep" aria-hidden="true"></span>
     <button id="t-labels" type="button" aria-pressed="true">Nombres</button>
     <button id="t-borders" type="button" aria-pressed="true">Límites</button>
     <button id="t-regions" type="button" aria-pressed="false">Regiones</button>
-    <button id="t-spin" type="button" aria-pressed="false">Girar</button>
+    <button id="t-spin" type="button" aria-pressed="false" hidden>Girar</button>
     <button id="t-reset" type="button">Vista inicial</button>
-    <label class="exag" for="t-exag">Relieve <input id="t-exag" type="range" min="1" max="8" step="0.5" value="4"><output id="t-exag-v" for="t-exag">×4</output></label>
+    <label class="exag" id="t-exag-wrap" for="t-exag" hidden>Relieve <input id="t-exag" type="range" min="1" max="8" step="0.5" value="4"><output id="t-exag-v" for="t-exag">×4</output></label>
     <span id="coord" aria-live="off"></span>
   </div>
   <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
@@ -261,7 +271,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const seaC = document.createElement('canvas'); seaC.width = 1024; seaC.height = Math.round(1024 * (SY1 - SY0) / (SX1 - SX0));
   const seaTex = new THREE.CanvasTexture(seaC); seaTex.encoding = THREE.sRGBEncoding;
   // Agua: oleaje procedural (normales animadas), brillo del sol y variación de tono
-  const waterU = { uTime: { value: 0 } };
+  const waterU = { uTime: { value: 0 }, uSolid: { value: 0 }, uSeaSolid: { value: new THREE.Color('#3a8fc2') } };
   const WATER_GLSL = `
     float whash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
     float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
@@ -277,13 +287,13 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   function waterify(mat) {
     mat.customProgramCacheKey = () => 'agua';
     mat.onBeforeCompile = sh => {
-      sh.uniforms.uTime = waterU.uTime;
+      sh.uniforms.uTime = waterU.uTime; sh.uniforms.uSolid = waterU.uSolid; sh.uniforms.uSeaSolid = waterU.uSeaSolid;
       sh.vertexShader = 'varying vec3 vWPos;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n  vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-      sh.fragmentShader = 'varying vec3 vWPos;\nuniform float uTime;\n' + WATER_GLSL + sh.fragmentShader
-        .replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= 0.9 + 0.12 * vnoise(vWPos.xz * 0.03 + vec2(uTime * 0.003, 0.0)) + 0.08 * vnoise(vWPos.xz * 0.25 - vec2(0.0, uTime * 0.01));')
+      sh.fragmentShader = 'varying vec3 vWPos;\nuniform float uTime;\nuniform float uSolid;\nuniform vec3 uSeaSolid;\n' + WATER_GLSL + sh.fragmentShader
+        .replace('#include <color_fragment>', '#include <color_fragment>\n  if (uSolid > 0.5) diffuseColor.rgb = uSeaSolid; else diffuseColor.rgb *= 0.9 + 0.12 * vnoise(vWPos.xz * 0.03 + vec2(uTime * 0.003, 0.0)) + 0.08 * vnoise(vWPos.xz * 0.25 - vec2(0.0, uTime * 0.01));')
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
   { float wd = length(vWPos - cameraPosition);
-    float wk = 0.09 * (1.0 - smoothstep(12.0, 140.0, wd));
+    float wk = uSolid > 0.5 ? 0.0 : 0.09 * (1.0 - smoothstep(12.0, 140.0, wd));
     if (wk > 0.001) {
       vec2 wp = vWPos.xz; float we = 0.012;
       float gx = (waves(wp + vec2(we, 0.0), uTime) - waves(wp - vec2(we, 0.0), uTime)) / (2.0 * we);
@@ -359,11 +369,12 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const regTex = new THREE.DataTexture(regData, 256, 1, THREE.RGBAFormat); regTex.encoding = THREE.sRGBEncoding;
   regTex.minFilter = regTex.magFilter = THREE.NearestFilter; regTex.needsUpdate = true;
   const uni = { barMap: { value: null }, barIdMap: { value: null }, barBox: { value: new THREE.Vector4(0, 0, 1, 1) }, barOn: { value: 0 }, hovBar: { value: -1 }, selBar: { value: -1 },
+    solidOn: { value: 0 }, solidGreen: { value: new THREE.Color('#6cad5c') },
     idMap: { value: idTex }, regMap: { value: regTex }, regionOn: { value: 0 }, selId: { value: -1 }, hovId: { value: -1 }, accent: { value: new THREE.Color() } };
   const terrainMat = new THREE.MeshStandardMaterial({ map: relTex, roughness: 0.95, metalness: 0, alphaTest: 0.5 });
   terrainMat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, uni);
-    sh.fragmentShader = 'uniform sampler2D barMap; uniform sampler2D barIdMap; uniform vec4 barBox; uniform float barOn; uniform float hovBar; uniform float selBar;\nuniform sampler2D idMap; uniform sampler2D regMap; uniform float regionOn; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+    sh.fragmentShader = 'uniform sampler2D barMap; uniform sampler2D barIdMap; uniform vec4 barBox; uniform float barOn; uniform float hovBar; uniform float selBar;\nuniform float solidOn; uniform vec3 solidGreen;\nuniform sampler2D idMap; uniform sampler2D regMap; uniform float regionOn; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       float mid = floor(texture2D(idMap, vUv).r * 255.0 + 0.5) - 1.0;
       if (regionOn > 0.5 && mid >= 0.0) {
         vec3 rc = texture2D(regMap, vec2((mid + 0.5) / 256.0, 0.5)).rgb;
@@ -371,7 +382,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
         diffuseColor.rgb = mix(diffuseColor.rgb, rc * (0.55 + 2.2 * l), 0.72);
       }
       bool inBar = false;
-      if (barOn > 0.5 && abs(mid - selId) < 0.5) {
+      if (solidOn > 0.5) diffuseColor.rgb = solidGreen;
+      if (barOn > 0.5) {
         vec2 bl = (vUv - barBox.xy) / (barBox.zw - barBox.xy);
         if (bl.x >= 0.0 && bl.y >= 0.0 && bl.x <= 1.0 && bl.y <= 1.0) {
           vec4 bc = texture2D(barMap, bl);
@@ -413,7 +425,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }));
 
   // ---------- Límites municipales sobre el relieve ----------
-  const OFF = 0.012;
+  const OFF = 0.03;
   function draped(p, lift) {
     const isl = polyOnIsland(p), pts = [];
     p.forEach(r => { for (let k = 0; k < r.length - 1; k++) {
@@ -443,8 +455,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
 
   // ---------- Exageración vertical ----------
-  let EX = 4;
-  function setExag(v) { EX = v; exGroup.scale.y = v; $('t-exag-v').textContent = '×' + v; }
+  let EXS = 4, EX = 4, solid = false;   // EXS: valor del control; EX: el que se usa (casi 0 en modo sólido)
+  function setExag(v) { EXS = v; EX = solid ? 0.002 : v; exGroup.scale.y = EX; $('t-exag-v').textContent = '×' + v; }
   setExag(4);
 
   // ---------- Altura máxima por municipio ----------
@@ -501,6 +513,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
   function placeLabels(w, h) {
     const on = showLabels && labelsReady, taken = [];
+    if (COM.label) placeOne(COM.label, (COM.label.isl ? ISL_H : COM.label.lh * EX) + 0.2, on, taken, w, h);
     // barrios del municipio seleccionado primero
     const bl = BAR.labels.slice().sort((a, b) => (b.k === BAR.sel) - (a.k === BAR.sel) || (b.k === BAR.hov) - (a.k === BAR.hov) || b.area - a.area);
     for (const o of bl) { placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.15, on, taken, w, h); o.el.classList.toggle('on', o.k === BAR.sel || o.k === BAR.hov); }
@@ -539,12 +552,25 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   // Distancia para que un rectángulo de medio ancho hw y medio alto hh (km) quepa en el área visible
   function fitDistance(hw, hh, margin = 1.2) {
     const v = visibleRect(), f = (size.h / 2) / Math.tan(THREE.MathUtils.degToRad(FOV0 / 2));
-    return Math.max(hw * f / (v.w / 2), hh * 0.8 * f / (v.h / 2)) * margin;
+    return Math.max(hw * f / (v.w / 2), hh * (is3D ? 0.8 : 1) * f / (v.h / 2)) * margin;
   }
+  // Modo plano (por defecto): vista cenital, norte arriba, solo mover y acercar. Modo 3D: inclinar y girar.
+  let is3D = false;
+  const FLAT_DIR = new THREE.Vector3(0, 1, 0.0015).normalize();
   function viewDir() {
+    if (!is3D) return FLAT_DIR.clone();
     const dir = camera.position.clone().sub(controls.target).normalize();
-    if (dir.y < 0.62) { dir.y = 0.62; dir.normalize(); }
-    return dir;
+    if (dir.y > 0.97 || dir.y < 0.62) { const az = Math.atan2(dir.x, dir.z) || 0; dir.set(Math.sin(az) * 0.67, 0.74, Math.cos(az) * 0.67); }
+    return dir.normalize();
+  }
+  function applyControlMode() {
+    controls.enableRotate = is3D;
+    controls.touches = { ONE: THREE.TOUCH.PAN, TWO: is3D ? THREE.TOUCH.DOLLY_ROTATE : THREE.TOUCH.DOLLY_PAN };
+    if (!is3D) controls.autoRotate = false;
+  }
+  function polarLimits(free) {
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = free || is3D ? Math.PI * 0.46 : 0.002;
   }
   function polysBox(polys) {
     // caja del polígono mayor (evita que Mona o cayos lejanos agranden el encuadre)
@@ -561,14 +587,15 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     flyTo(target, target.clone().add(viewDir().multiplyScalar(d)), 1100);
   }
   function homeView() {
-    const phone = size.w <= 640;   // en vertical se encuadra la isla grande y se inclina más la vista
+    const phone = size.w <= 640;   // en vertical se encuadra la isla grande
     const d = Math.min(740, phone ? fitDistance(92, 30, 1.0) : fitDistance(112, 34, 1.08));
-    const dir = (phone ? new THREE.Vector3(0, 0.62, 0.78) : new THREE.Vector3(0, 0.74, 0.67)).normalize();
+    const dir = !is3D ? FLAT_DIR.clone() : (phone ? new THREE.Vector3(0, 0.62, 0.78) : new THREE.Vector3(0, 0.74, 0.67)).normalize();
     const t = phone ? new THREE.Vector3(2, 0, -2) : new THREE.Vector3(18, 0, -1);
     return { target: t, pos: dir.multiplyScalar(d).add(t) };
   }
   let tween = null;
   function flyTo(target, pos, ms = 1000) {
+    polarLimits(true);
     tween = { t0: performance.now(), ms: reduceMotion ? 0 : ms, ft: controls.target.clone(), fp: camera.position.clone(), tt: target, tp: pos };
   }
   function flyToMuni(i) { flyToBox(polysBox(DATA[i].polys), 14); }
@@ -578,7 +605,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const BAR = { list: [], labels: [], lines: [], sel: -1, hov: -1, cache: new Map(), req: 0, fips: null };
   const barLineMat = new THREE.LineBasicMaterial({ color: 0x10201a, transparent: true, opacity: 0.6, depthWrite: false });
   const barLineSelMat = new THREE.LineBasicMaterial({ color: 0xffffff, depthWrite: false });
-  const autoColor = k => '#' + new THREE.Color().setHSL(((k * 137.508) % 360) / 360, 0.6, 0.62).getHexString();
+  // Paleta común para todos los municipios; `c` viene precalculado para que barrios vecinos no repitan color
+  const BAR_PALETTE = ['#f2a7a0', '#9fd0ef', '#b5e39b', '#f6d27f', '#c7b2f0', '#f3b5d6', '#93ddc9', '#e9c29a', '#d6e48a', '#a9b9f2'];
+  const barColor = (b, k) => BAR_PALETTE[(b.c ?? k) % BAR_PALETTE.length];
   const barName = b => b.pueblo ? `${b.name} Pueblo` : b.name;
   function insidePoly(pt, poly) {
     let c = false;
@@ -589,13 +618,42 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     return c;
   }
   const barrioAt = (lon, lat) => BAR.list.findIndex(b => b.polys.some(p => insidePoly([lon, lat], p)));
-  function dropLines(arr) { arr.forEach(l => { l.parent.remove(l); l.geometry.dispose(); }); arr.length = 0; }
+  function dropLines(arr) { arr.forEach(l => { l.parent.remove(l); l.geometry.dispose(); if (l.isMesh) l.material.dispose(); }); arr.length = 0; }
   let barSelLines = [];
   function clearBarrios() {
     dropLines(BAR.lines); dropLines(barSelLines);
     BAR.labels.forEach(o => o.el.remove()); BAR.labels = []; BAR.list = []; BAR.fips = null; BAR.sel = BAR.hov = -1;
     uni.barOn.value = 0; uni.selBar.value = uni.hovBar.value = -1;
     $('bars').textContent = ''; $('bar-sel').hidden = true; $('bars-title').hidden = true;
+    clearComunidades();
+  }
+  // ---------- Comunidades del Censo (p. ej. Corazón en Guayama): se listan en la ficha y se muestran al tocarlas ----------
+  const COM = { list: [], cache: new Map(), lines: [], label: null, sel: -1 };
+  const comLineMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.25, gapSize: 0.15, depthWrite: false });
+  function clearComunidades() {
+    dropLines(COM.lines); if (COM.label) { COM.label.el.remove(); COM.label = null; }
+    COM.list = []; COM.sel = -1; $('coms').textContent = ''; $('coms-title').hidden = true;
+  }
+  async function showComunidades(i, req) {
+    const id = DATA[i].id;
+    if (!COM.cache.has(id)) COM.cache.set(id, fetch(`data/comunidades/${id}.json`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }));
+    let list; try { list = await COM.cache.get(id); } catch (e) { COM.cache.delete(id); return; }
+    if (req !== BAR.req || selected !== i || !list.length) return;
+    COM.list = list;
+    $('coms-title').textContent = `Comunidades (${list.length})`; $('coms-title').hidden = false;
+    list.forEach((c, k) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = c.name; b.addEventListener('click', () => selectComunidad(k)); $('coms').append(b); });
+  }
+  function selectComunidad(k) {
+    const c = COM.list[k]; if (!c) return;
+    dropLines(COM.lines); if (COM.label) COM.label.el.remove();
+    COM.sel = k; [...$('coms').children].forEach((el, j) => el.classList.toggle('on', j === k));
+    const bl = buildLines(c.polys, 0.02);
+    for (const [arr, parent] of [[bl.main, exGroup], [bl.isl, scene]]) if (arr.length) { const l = mkLines(arr, comLineMat, 5); l.computeLineDistances(); parent.add(l); COM.lines.push(l); }
+    const el = document.createElement('div'); el.className = 'lbl com'; el.textContent = c.name; labelsEl.appendChild(el);
+    const [lx, ly] = proj(...c.label);
+    COM.label = { el, w: 0, vis: null, lx, ly, lh: hAt(lx, ly), isl: !landAt(...c.label) };
+    setCompact(true);
+    flyToBox(polysBox(c.polys), 5);
   }
   async function showBarrios(i) {
     const req = ++BAR.req; clearBarrios();
@@ -605,18 +663,19 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     try { list = await BAR.cache.get(id); } catch (e) { BAR.cache.delete(id); return; }
     if (req !== BAR.req || selected !== i) return;
     BAR.list = list; BAR.fips = id;
-    list.forEach((b, k) => { if (!b.color) b.color = autoColor(k); });
+    list.forEach((b, k) => { b.color = barColor(b, k); });
     // texturas de color e identificador sobre el rectángulo del municipio
     let lo0 = 1e9, lo1 = -1e9, la0 = 1e9, la1 = -1e9;
     list.forEach(b => b.polys.forEach(p => p[0].forEach(([x, y]) => { lo0 = Math.min(lo0, x); lo1 = Math.max(lo1, x); la0 = Math.min(la0, y); la1 = Math.max(la1, y); })));
     const asp = (lo1 - lo0) * COS / (la1 - la0);
-    const CW = asp >= 1 ? 1024 : Math.round(1024 * asp), CH = asp >= 1 ? Math.round(1024 / asp) : 1024;
+    const TS = small ? 1536 : 2048;   // resolución del relleno: unos 10–20 m por píxel
+    const CW = asp >= 1 ? TS : Math.round(TS * asp), CH = asp >= 1 ? Math.round(TS / asp) : TS;
     const cc = document.createElement('canvas'), ic = document.createElement('canvas'); cc.width = ic.width = CW; cc.height = ic.height = CH;
     const c1 = cc.getContext('2d'), c2 = ic.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, CW, CH);
     const tp = ([x, y]) => [(x - lo0) / (lo1 - lo0) * CW, (la1 - y) / (la1 - la0) * CH];
     list.forEach((b, k) => {
       for (const [ctx, col] of [[c1, b.color], [c2, `rgb(${k + 1},0,0)`]]) {
-        ctx.fillStyle = ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath();
+        ctx.fillStyle = ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.lineJoin = 'round'; ctx.beginPath();
         b.polys.forEach(p => p.forEach(r => r.forEach((pt, j) => { const [x, y] = tp(pt); j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); })));
         ctx.fill('evenodd'); ctx.stroke();
       }
@@ -631,6 +690,15 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const bl = buildLines(list.flatMap(b => b.polys), 0.007);
     if (bl.main.length) { const l = mkLines(bl.main, barLineMat, 2); exGroup.add(l); BAR.lines.push(l); }
     if (bl.isl.length) { const l = mkLines(bl.isl, barLineMat, 2); scene.add(l); BAR.lines.push(l); }
+    // barrios de islas fuera del relieve (Vieques, Culebra, Mona): tapa plana del color del barrio
+    list.forEach(b => b.polys.forEach(p => {
+      if (!polyOnIsland(p)) return;
+      const ring = rr => rr.slice(0, -1).map(([a, c]) => new THREE.Vector2(...proj(a, c)));
+      const sh = new THREE.Shape(ring(p[0])); p.slice(1).forEach(h => sh.holes.push(new THREE.Path(ring(h))));
+      const g = new THREE.ShapeGeometry(sh); g.rotateX(-Math.PI / 2);
+      const ms = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.9 }));
+      ms.position.y = ISL_H + 0.002; ms.renderOrder = 1; scene.add(ms); BAR.lines.push(ms);
+    }));
     // etiquetas y lista en la ficha
     const bars = $('bars');
     list.forEach((b, k) => {
@@ -645,6 +713,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       bars.append(bt);
     });
     $('bars-title').textContent = `Barrios (${list.length})`; $('bars-title').hidden = false;
+    showComunidades(i, req);
     if (!$('i-sum').textContent.includes('barrios')) $('i-sum').textContent += ` · ${list.length} barrios`;
   }
   function setHoverBar(k) { if (k === BAR.hov) return; BAR.hov = k; uni.hovBar.value = k; }
@@ -658,7 +727,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const bl = buildLines(b.polys, 0.014);
     if (bl.main.length) { const l = mkLines(bl.main, barLineSelMat, 4); exGroup.add(l); barSelLines.push(l); }
     if (bl.isl.length) { const l = mkLines(bl.isl, barLineSelMat, 4); scene.add(l); barSelLines.push(l); }
-    if (fly) flyToBox(polysBox(b.polys), 6);
+    if (fly) { setCompact(true); flyToBox(polysBox(b.polys), 6); }
     window.dispatchEvent(new CustomEvent('barrio:select', { detail: { municipio: DATA[selected].name, id: b.id, name: b.name, pueblo: b.pueblo } }));
   }
 
@@ -757,7 +826,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (p.idx >= 0 && p.idx === selected && BAR.list.length) { const k = barrioAt(...unproj(p.x, p.y)); if (k >= 0) { selectBarrio(k); return; } }
     if (p.idx >= 0) select(p.idx); else if (selected >= 0) select(-1);
   });
-  controls.addEventListener('start', () => { tween = null; tip.hidden = true; });
+  controls.addEventListener('start', () => { if (tween) { tween = null; polarLimits(false); } tip.hidden = true; });
 
   // ---------- Buscador ----------
   const q = $('q'), listEl = $('list');
@@ -802,6 +871,24 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   toggle('t-labels', on => { showLabels = on; });
   toggle('t-borders', on => { borderMain.visible = borderIsl.visible = on; });
   toggle('t-spin', on => { controls.autoRotate = on; });
+  toggle('t-3d', on => {
+    is3D = on; applyControlMode(); setHint();
+    $('t-spin').hidden = !on; if (!on) $('t-spin').setAttribute('aria-pressed', false);
+    $('t-exag-wrap').hidden = !on || solid;
+    const d = camera.position.distanceTo(controls.target);
+    flyTo(controls.target.clone(), controls.target.clone().add(viewDir().multiplyScalar(d)), 900);
+  });
+  const lineMats = [bordersMat, selLineMat, barLineMat, barLineSelMat, comLineMat];
+  toggle('t-solid', on => {
+    solid = on; uni.solidOn.value = on ? 1 : 0; waterU.uSolid.value = on ? 1 : 0;
+    setExag(EXS);
+    // en plano las líneas se dibujan siempre encima (no hay montañas que las tapen)
+    lineMats.forEach(m => { m.depthTest = !on; m.needsUpdate = true; });
+    terrain.castShadow = !on;
+    islandTop.color.set(on ? '#6cad5c' : css('--island'));
+    $('t-exag-wrap').hidden = !is3D || on;
+    BAR.labels.forEach(o => o.vis = null);
+  });
   const legend = $('legend');
   REGIONS.forEach(([n, c]) => {
     const b = document.createElement('button'); b.type = 'button';
@@ -829,6 +916,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
   new ResizeObserver(resize).observe(app); resize();
   applyTheme();
+  applyControlMode(); polarLimits(false);
   const v0 = homeView();
   controls.target.copy(v0.target);
   if (reduceMotion) camera.position.copy(v0.pos);
@@ -836,7 +924,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 
   // Pista de navegación (se oculta al primer gesto)
   const hint = $('hint'), coarse = matchMedia('(pointer: coarse)').matches;
-  hint.textContent = coarse ? 'Arrastra para mover · pellizca para acercar · gira con dos dedos' : 'Arrastra para mover · rueda para acercar · clic derecho o Shift + arrastrar para girar';
+  const setHint = () => { hint.textContent = (coarse ? 'Arrastra para mover · pellizca para acercar' : 'Arrastra para mover · rueda para acercar')
+    + (is3D ? (coarse ? ' · gira e inclina con dos dedos' : ' · clic derecho o Shift + arrastrar para girar') : ' · activa 3D para inclinar'); };
+  setHint();
   const hideHint = () => hint.classList.add('out');
   { const tr = $('tools').getBoundingClientRect(), a = app.getBoundingClientRect(); hint.style.bottom = `${a.bottom - tr.top + 10}px`; }
   controls.addEventListener('start', hideHint); setTimeout(hideHint, 9000);
@@ -847,7 +937,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (tween) {
       const k = tween.ms ? Math.min(1, (performance.now() - tween.t0) / tween.ms) : 1, e = ease(k);
       controls.target.lerpVectors(tween.ft, tween.tt, e); camera.position.lerpVectors(tween.fp, tween.tp, e);
-      if (k >= 1) tween = null;
+      if (k >= 1) { tween = null; polarLimits(false); }
     }
     controls.update();
     // no dejar que el mapa se vaya fuera de la pantalla al arrastrar
