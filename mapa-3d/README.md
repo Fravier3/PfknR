@@ -14,6 +14,13 @@ Mapa 3D interactivo (Three.js 0.147) de Puerto Rico con relieve y los 78 municip
 
 Extensión de la textura y del mapa de alturas: lat 17.8789 a 18.5174, lon −67.2726 a −65.5265.
 
+## Navegación
+
+- Teléfono: un dedo mueve el mapa; dos dedos acercan, alejan y giran.
+- Ratón: arrastrar mueve; la rueda acerca; botón derecho o Shift + arrastrar gira.
+- Al seleccionar un municipio, la cámara lo encuadra en la parte de la pantalla que no tapa la ficha (`camera.setViewOffset`). En el teléfono la ficha abre compacta; el botón "Detalles" la expande.
+- El mapa siempre se ve claro, aunque el sistema esté en modo oscuro; solo los paneles siguen el tema.
+
 ## Datos de `municipios.json`
 
 Un arreglo de 78 objetos, en orden alfabético:

@@ -12,7 +12,8 @@
 /* Layout: terreno a pantalla completa; buscador flotante arriba-izquierda, ficha a la derecha (hoja inferior en teléfono), herramientas abajo. */
 :root {
   --bg: #dfe9ea; --ink: #13262b; --muted: #55686c; --panel: rgba(248, 251, 250, .9); --line: rgba(19, 38, 43, .14);
-  --deep: #3f86a3; --shallow: #8fd3d6; --fog: #cfe2e4;
+  /* colores de la escena 3D: iguales en tema claro y oscuro (el mapa siempre se ve claro) */
+  --deep: #1d6f9c; --shallow: #5fcdd0; --fog: #d5e7eb;
   --border: #ffffff; --island: #6f985f; --island-side: #c9b48a;
   --accent: #e4502a;
   --f-display: "Sora", "Segoe UI", system-ui, sans-serif;
@@ -21,21 +22,18 @@
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
   --bg: #061317; --ink: #e2eded; --muted: #93a8ab; --panel: rgba(9, 25, 30, .88); --line: rgba(226, 237, 237, .14);
-  --deep: #0a2a38; --shallow: #1d6b74; --fog: #061419;
-  --border: #f4efe2; --island: #557a4b; --island-side: #7d6c4e;
   --accent: #ff7247; color-scheme: dark;
 } }
 :root[data-theme="dark"] {
   --bg: #061317; --ink: #e2eded; --muted: #93a8ab; --panel: rgba(9, 25, 30, .88); --line: rgba(226, 237, 237, .14);
-  --deep: #0a2a38; --shallow: #1d6b74; --fog: #061419;
-  --border: #f4efe2; --island: #557a4b; --island-side: #7d6c4e;
   --accent: #ff7247; color-scheme: dark;
 }
 html, body { height: 100%; }
 [hidden] { display: none !important; }
 body { background: var(--bg); color: var(--ink); font-family: var(--f-body); overflow: hidden; }
-#app { position: relative; height: 100%; overflow: hidden; }
-#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#app { position: relative; height: 100%; overflow: hidden; background: var(--fog); }
+#scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; -webkit-tap-highlight-color: transparent; }
+#scene:active { cursor: grabbing; }
 #scene.hovering { cursor: pointer; }
 #labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .lbl { position: absolute; left: 0; top: 0; font: 600 11px/1 var(--f-body); color: #fff; white-space: nowrap; letter-spacing: .01em;
@@ -104,7 +102,11 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
   background: var(--ink); color: var(--bg); padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
 #tip small { font: 400 11px var(--f-mono); opacity: .75; margin-left: 6px; }
 button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-#loading { position: absolute; inset: 0; display: grid; place-items: center; font: 500 13px var(--f-mono); color: var(--muted); z-index: 5; }
+#loading { position: absolute; inset: 0; display: grid; place-items: center; font: 500 13px var(--f-mono); color: #3d5a60; z-index: 5; }
+#hint { left: 50%; bottom: 76px; transform: translateX(-50%); padding: 8px 14px; z-index: 2; font: 500 12.5px var(--f-body); white-space: nowrap; transition: opacity .4s; }
+#hint.out { opacity: 0; pointer-events: none; }
+#more, .sum { display: none; }
+.hbtns { display: flex; gap: 6px; flex: none; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @media (max-width: 900px) { #credit { display: none; } }
@@ -112,7 +114,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #finder { right: max(16px, env(safe-area-inset-right, 0px)); width: auto; padding: 10px 12px; gap: 8px; }
   .brand h1 { font-size: 17px; }
   #list { max-height: 34vh; }
-  #info { top: auto; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: 48vh; overflow-y: auto; gap: 10px; }
+  #info { top: auto; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: 58vh; overflow-y: auto; gap: 10px; padding: 12px 14px; }
+  #info.compact { gap: 6px; }
+  #info.compact > dl.stats, #info.compact > .nb-title, #info.compact > #nbs, #info.compact > #bars { display: none !important; }
+  #info.compact .sum { display: block; margin: 0; font: 500 13px var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
+  #info .reg { margin-top: 3px; }
+  #more { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 500 12.5px var(--f-body); cursor: pointer; }
+  #hint { bottom: calc(118px + env(safe-area-inset-bottom, 0px)); white-space: normal; text-align: center; width: max-content; max-width: calc(100% - 48px); }
+  #app.has-sel #hint { display: none; }
   #info h2 { font-size: 22px; }
   #tools { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
   #app.has-sel #tools, #app.has-sel #legend, #coord, #tip { display: none; }
@@ -138,8 +147,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   <section id="info" class="panel" hidden aria-live="polite">
     <div class="head">
       <div><span class="eyebrow">Municipio · FIPS <span id="i-code"></span></span><h2 id="i-name"></h2><div class="reg"><span class="sw" id="i-regsw"></span><span id="i-reg"></span></div></div>
-      <button id="close" type="button" aria-label="Cerrar ficha">✕</button>
+      <div class="hbtns"><button id="more" type="button" aria-expanded="false">Detalles</button><button id="close" type="button" aria-label="Cerrar ficha">✕</button></div>
     </div>
+    <p class="sum" id="i-sum"></p>
     <dl class="stats">
       <div><dt>Área terrestre</dt><dd id="i-area"></dd></div>
       <div><dt>Área de agua</dt><dd id="i-water"></dd></div>
@@ -165,6 +175,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
   <div id="credit">Límites: U.S. Census Bureau 1:500k · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
   <div id="tip" hidden></div>
+  <div id="hint" class="panel" aria-live="polite"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
@@ -237,10 +248,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const controls = new THREE.OrbitControls(camera, canvas);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
   controls.maxPolarAngle = Math.PI * 0.46; controls.minDistance = 8; controls.maxDistance = 760;
-  controls.screenSpacePanning = false; controls.autoRotateSpeed = 0.5; controls.zoomSpeed = 1.2;
+  controls.screenSpacePanning = false; controls.autoRotateSpeed = 0.5; controls.zoomSpeed = 1.2; controls.rotateSpeed = 0.6;
+  // Navegación tipo mapa: arrastrar mueve; girar con botón derecho / Shift (ratón) o con dos dedos (táctil)
+  controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
+  controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
+  const FOV0 = 36;
 
-  const hemi = new THREE.HemisphereLight(0xffffff, 0x3a4a3e, 0.6); scene.add(hemi);
-  const sun = new THREE.DirectionalLight(0xfff4e2, 0.9);
+  const hemi = new THREE.HemisphereLight(0xffffff, 0x4a5a4e, 0.75); scene.add(hemi);
+  const sun = new THREE.DirectionalLight(0xfff4e2, 1.0);
   sun.position.set(-80, 120, -60); sun.castShadow = true;
   sun.shadow.mapSize.set(small ? 1024 : 2048, small ? 1024 : 2048);
   Object.assign(sun.shadow.camera, { left: -150, right: 150, top: 110, bottom: -110, near: 10, far: 420 });
@@ -252,10 +267,44 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const [SX0, SY0] = proj(SEA.w, SEA.s), [SX1, SY1] = proj(SEA.e, SEA.n);
   const seaC = document.createElement('canvas'); seaC.width = 1024; seaC.height = Math.round(1024 * (SY1 - SY0) / (SX1 - SX0));
   const seaTex = new THREE.CanvasTexture(seaC); seaTex.encoding = THREE.sRGBEncoding;
-  const seaMat = new THREE.MeshStandardMaterial({ map: seaTex, roughness: 0.5, metalness: 0.05 });
+  // Agua: oleaje procedural (normales animadas), brillo del sol y variación de tono
+  const waterU = { uTime: { value: 0 } };
+  const WATER_GLSL = `
+    float whash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float vnoise(vec2 p) { vec2 i = floor(p), f = fract(p); vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(mix(whash(i), whash(i + vec2(1.0, 0.0)), u.x), mix(whash(i + vec2(0.0, 1.0)), whash(i + vec2(1.0, 1.0)), u.x), u.y); }
+    float waves(vec2 p, float t) {
+      float h = vnoise(p * 4.0 + vec2(t * 0.20, t * 0.12)) * 0.5;
+      h += vnoise(p * 9.0 - vec2(t * 0.16, -t * 0.25)) * 0.25;
+      h += vnoise(p * 21.0 + vec2(-t * 0.35, t * 0.2)) * 0.12;
+      h += sin(dot(p, vec2(0.6, 0.8)) * 14.0 - t * 1.4) * 0.04;
+      return h;
+    }
+`;
+  function waterify(mat) {
+    mat.customProgramCacheKey = () => 'agua';
+    mat.onBeforeCompile = sh => {
+      sh.uniforms.uTime = waterU.uTime;
+      sh.vertexShader = 'varying vec3 vWPos;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n  vWPos = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.fragmentShader = 'varying vec3 vWPos;\nuniform float uTime;\n' + WATER_GLSL + sh.fragmentShader
+        .replace('#include <color_fragment>', '#include <color_fragment>\n  diffuseColor.rgb *= 0.9 + 0.12 * vnoise(vWPos.xz * 0.03 + vec2(uTime * 0.003, 0.0)) + 0.08 * vnoise(vWPos.xz * 0.25 - vec2(0.0, uTime * 0.01));')
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>
+  { float wd = length(vWPos - cameraPosition);
+    float wk = 0.09 * (1.0 - smoothstep(12.0, 140.0, wd));
+    if (wk > 0.001) {
+      vec2 wp = vWPos.xz; float we = 0.012;
+      float gx = (waves(wp + vec2(we, 0.0), uTime) - waves(wp - vec2(we, 0.0), uTime)) / (2.0 * we);
+      float gz = (waves(wp + vec2(0.0, we), uTime) - waves(wp - vec2(0.0, we), uTime)) / (2.0 * we);
+      normal = normalize((viewMatrix * vec4(normalize(vec3(-gx * wk, 1.0, -gz * wk)), 0.0)).xyz);
+    } }`);
+    };
+  }
+  const seaMat = new THREE.MeshStandardMaterial({ map: seaTex, roughness: 0.42, metalness: 0.0 });
+  waterify(seaMat);
   const sea = new THREE.Mesh(new THREE.PlaneGeometry(SX1 - SX0, SY1 - SY0), seaMat);
   sea.rotation.x = -Math.PI / 2; sea.position.set((SX0 + SX1) / 2, -0.12, -(SY0 + SY1) / 2); sea.receiveShadow = true; scene.add(sea);
-  const deepMat = new THREE.MeshStandardMaterial({ roughness: 0.5 });
+  const deepMat = new THREE.MeshStandardMaterial({ roughness: 0.42 });
+  waterify(deepMat);
   const deepShape = new THREE.Shape([[-3000, -3000], [3000, -3000], [3000, 3000], [-3000, 3000]].map(p => new THREE.Vector2(...p)));
   deepShape.holes.push(new THREE.Path([[SX0, SY0], [SX0, SY1], [SX1, SY1], [SX1, SY0]].map(([x, y]) => new THREE.Vector2(x, y))));
   const deep = new THREE.Mesh(new THREE.ShapeGeometry(deepShape), deepMat);
@@ -282,7 +331,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const A = hexRGB(css('--deep')), B = hexRGB(css('--shallow'));
     for (let i = 0; i < px.length; i += 4) {
       const t = Math.min(1, Math.pow(px[i] / 255 * 1.5, 1.6)) * 0.85;
-      px[i] = A[0] + (B[0] - A[0]) * t; px[i + 1] = A[1] + (B[1] - A[1]) * t; px[i + 2] = A[2] + (B[2] - A[2]) * t; px[i + 3] = 255;
+      const foam = Math.min(1, Math.max(0, (t - 0.74) / 0.11)) * 0.32;   // franja clara de rompiente junto a la costa
+      for (let c = 0; c < 3; c++) { const v = A[c] + (B[c] - A[c]) * t; px[i + c] = v + (255 - v) * foam; }
+      px[i + 3] = 255;
     }
     c.putImageData(d, 0, 0);
     seaTex.needsUpdate = true;
@@ -426,8 +477,6 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     uni.accent.value.set(css('--accent')); selLineMat.color.set(css('--accent'));
     islandTop.color.set(css('--island')); islandSide.color.set(css('--island-side'));
     islandSelMat.color.set(css('--accent')); islandHovMat.color.set(css('--island')).lerp(new THREE.Color(0xffffff), 0.3);
-    const dark = getComputedStyle(document.documentElement).colorScheme.includes('dark');
-    hemi.intensity = dark ? 0.45 : 0.6; sun.intensity = dark ? 0.75 : 0.9;
     paintSea(); paintIslands();
   }
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
@@ -468,34 +517,68 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 
   // ---------- Cámara ----------
   let size = { w: 1, h: 1 };
+  const info = $('info');
+  // Parte de la pantalla que no tapan los paneles (en px del lienzo)
+  function visibleRect() {
+    const a = app.getBoundingClientRect(), phone = a.width <= 640;
+    let x0 = 0, y0 = 0, x1 = a.width, y1 = a.height;
+    if (phone) y0 = Math.min($('q').getBoundingClientRect().bottom - a.top + 14, a.height * 0.35);
+    if (!info.hidden) {
+      const r = info.getBoundingClientRect();
+      if (phone) y1 = Math.max(y0 + 140, r.top - a.top - 6); else x1 = Math.max(x0 + 240, r.left - a.left - 12);
+    }
+    return { x0, y0, x1, y1, w: x1 - x0, h: y1 - y0 };
+  }
+  // El centro de la proyección se mueve al centro del área visible (setViewOffset), sin cambiar la escala
+  const VO = { cx: null, cy: null, key: '' };
+  function updateViewOffset(instant) {
+    const v = visibleRect(), tx = (v.x0 + v.x1) / 2, ty = (v.y0 + v.y1) / 2;
+    if (VO.cx == null || instant || reduceMotion) { VO.cx = tx; VO.cy = ty; }
+    else { VO.cx += (tx - VO.cx) * 0.14; VO.cy += (ty - VO.cy) * 0.14; }
+    const w = size.w, h = size.h, key = `${w}|${h}|${VO.cx.toFixed(1)}|${VO.cy.toFixed(1)}`;
+    if (key === VO.key) return; VO.key = key;
+    const ox = w / 2 - VO.cx, oy = h / 2 - VO.cy, W2 = w + 2 * Math.abs(ox), H2 = h + 2 * Math.abs(oy);
+    camera.aspect = W2 / H2;
+    camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(FOV0 / 2)) * H2 / h));
+    camera.setViewOffset(W2, H2, W2 / 2 - VO.cx, H2 / 2 - VO.cy, w, h);
+    camera.updateProjectionMatrix();
+  }
+  // Distancia para que un rectángulo de medio ancho hw y medio alto hh (km) quepa en el área visible
+  function fitDistance(hw, hh, margin = 1.2) {
+    const v = visibleRect(), f = (size.h / 2) / Math.tan(THREE.MathUtils.degToRad(FOV0 / 2));
+    return Math.max(hw * f / (v.w / 2), hh * 0.8 * f / (v.h / 2)) * margin;
+  }
+  function viewDir() {
+    const dir = camera.position.clone().sub(controls.target).normalize();
+    if (dir.y < 0.62) { dir.y = 0.62; dir.normalize(); }
+    return dir;
+  }
+  function polysBox(polys) {
+    // caja del polígono mayor (evita que Mona o cayos lejanos agranden el encuadre)
+    let best = null, ba = -1;
+    polys.forEach(p => { let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+      p[0].forEach(pt => { const [x, y] = proj(...pt); x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); });
+      const a = (x1 - x0) * (y1 - y0); if (a > ba) { ba = a; best = { x0, x1, y0, y1 }; } });
+    return best;
+  }
+  function flyToBox(b, minD = 10) {
+    const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
+    const target = new THREE.Vector3(cx, (landAt(...unproj(cx, cy)) ? hAt(cx, cy) * EX : 0) * 0.5, -cy);
+    const d = THREE.MathUtils.clamp(fitDistance((b.x1 - b.x0) / 2, (b.y1 - b.y0) / 2), minD, 700);
+    flyTo(target, target.clone().add(viewDir().multiplyScalar(d)), 1100);
+  }
   function homeView() {
-    const aspect = size.w / size.h, halfW = 112, halfH = 40;
-    const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    const d = Math.min(740, Math.max(halfH / t, halfW / (t * aspect)) * 1.1);
-    const dir = new THREE.Vector3(0, 0.74, 0.67).normalize();
-    return { target: new THREE.Vector3(18, 0, -1), pos: dir.multiplyScalar(d).add(new THREE.Vector3(18, 0, -1)) };
+    const phone = size.w <= 640;   // en vertical se encuadra la isla grande y se inclina más la vista
+    const d = Math.min(740, phone ? fitDistance(92, 30, 1.0) : fitDistance(112, 34, 1.08));
+    const dir = (phone ? new THREE.Vector3(0, 0.62, 0.78) : new THREE.Vector3(0, 0.74, 0.67)).normalize();
+    const t = phone ? new THREE.Vector3(2, 0, -2) : new THREE.Vector3(18, 0, -1);
+    return { target: t, pos: dir.multiplyScalar(d).add(t) };
   }
   let tween = null;
   function flyTo(target, pos, ms = 1000) {
     tween = { t0: performance.now(), ms: reduceMotion ? 0 : ms, ft: controls.target.clone(), fp: camera.position.clone(), tt: target, tp: pos };
   }
-  function flyToMuni(i) {
-    const o = muni[i];
-    const target = new THREE.Vector3(o.lx, anchorY(o) * 0.5, -o.ly);
-    const d = THREE.MathUtils.clamp(Math.sqrt(o.m.areaKm2) * 3.6, 30, 110) * Math.max(1, 0.85 * size.h / size.w);
-    const dir = camera.position.clone().sub(controls.target).normalize();
-    if (dir.y < 0.6) { dir.y = 0.6; dir.normalize(); }
-    framed(target, dir, d);
-  }
-  // Corre el punto de mira para que el municipio no quede detrás de la ficha
-  function framed(target, dir, d) {
-    const flat = new THREE.Vector3(dir.x, 0, dir.z); if (flat.lengthSq() < 1e-6) flat.set(0, 0, 1); flat.normalize();
-    const right = new THREE.Vector3(flat.z, 0, -flat.x);
-    const t = target.clone();
-    if (size.w <= 640) t.addScaledVector(flat, d * 0.12);   // teléfono: la hoja tapa la mitad inferior
-    else t.addScaledVector(right, d * 0.16);                // computadora: la ficha está a la derecha
-    flyTo(t, t.clone().add(dir.clone().multiplyScalar(d)));
-  }
+  function flyToMuni(i) { flyToBox(polysBox(DATA[i].polys), 14); }
   const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
   // ---------- Barrios (TIGER 2014 del Censo; se cargan al seleccionar un municipio) ----------
@@ -569,6 +652,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       bars.append(bt);
     });
     $('bars-title').textContent = `Barrios (${list.length})`; $('bars-title').hidden = false;
+    if (!$('i-sum').textContent.includes('barrios')) $('i-sum').textContent += ` · ${list.length} barrios`;
   }
   function setHoverBar(k) { if (k === BAR.hov) return; BAR.hov = k; uni.hovBar.value = k; }
   function selectBarrio(k, { fly = false } = {}) {
@@ -581,17 +665,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const bl = buildLines(b.polys, 0.014);
     if (bl.main.length) { const l = mkLines(bl.main, barLineSelMat, 4); exGroup.add(l); barSelLines.push(l); }
     if (bl.isl.length) { const l = mkLines(bl.isl, barLineSelMat, 4); scene.add(l); barSelLines.push(l); }
-    if (fly) {
-      const o = BAR.labels[k], target = new THREE.Vector3(o.lx, (o.isl ? ISL_H : o.lh * EX) * 0.6, -o.ly);
-      const d = THREE.MathUtils.clamp(Math.sqrt(b.areaKm2) * 5, 12, 45) * Math.max(1, 0.85 * size.h / size.w);
-      const dir = camera.position.clone().sub(controls.target).normalize(); if (dir.y < 0.6) { dir.y = 0.6; dir.normalize(); }
-      framed(target, dir, d);
-    }
+    if (fly) flyToBox(polysBox(b.polys), 6);
     window.dispatchEvent(new CustomEvent('barrio:select', { detail: { municipio: DATA[selected].name, id: b.id, name: b.name, pueblo: b.pueblo } }));
   }
 
   // ---------- Selección ----------
-  const info = $('info');
   const fmt = new Intl.NumberFormat('es-PR', { maximumFractionDigits: 1 }), fmt0 = new Intl.NumberFormat('es-PR');
   const fmtLL = ([lon, lat]) => `${lat.toFixed(3)}°N ${Math.abs(lon).toFixed(3)}°O`;
   function select(i, { fly = true } = {}) {
@@ -615,7 +693,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       b.addEventListener('mouseenter', () => setHover(j)); b.addEventListener('mouseleave', () => setHover(-1));
       nbs.append(b);
     });
-    info.hidden = false;
+    $('i-sum').textContent = `${fmt.format(m.areaKm2)} km²` + (m.maxAlt != null ? ` · hasta ${fmt0.format(m.maxAlt)} m` : '');
+    setCompact(true);
+    info.hidden = false; info.scrollTop = 0;
     showBarrios(i);
     if (fly) flyToMuni(i);
     dispatch(m);
@@ -720,6 +800,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     else if (e.key === 'Escape') { q.value = ''; q.blur(); }
   });
   $('close').addEventListener('click', () => select(-1));
+  function setCompact(on) { info.classList.toggle('compact', on); $('more').setAttribute('aria-expanded', !on); $('more').textContent = on ? 'Detalles' : 'Menos'; }
+  $('more').addEventListener('click', () => setCompact(!info.classList.contains('compact')));
   addEventListener('keydown', e => { if (e.key === 'Escape' && document.activeElement !== q && selected >= 0) select(-1); });
 
   // ---------- Herramientas ----------
@@ -741,9 +823,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     muni.forEach(o => { if (o.m.region !== n || o.isl) return; x0 = Math.min(x0, o.lx); x1 = Math.max(x1, o.lx); y0 = Math.min(y0, o.ly); y1 = Math.max(y1, o.ly); });
     if (x0 > x1) return;
     select(-1, { fly: false });
-    const c = new THREE.Vector3((x0 + x1) / 2, 0, -(y0 + y1) / 2), span = Math.max(x1 - x0, (y1 - y0) * 1.6, 25);
-    const d = span * 1.35 * Math.max(1, 0.85 * size.h / size.w);
-    flyTo(c, c.clone().add(new THREE.Vector3(0, 0.74, 0.67).normalize().multiplyScalar(d)));
+    flyToBox({ x0: x0 - 8, x1: x1 + 8, y0: y0 - 8, y1: y1 + 8 }, 30);
   }
   toggle('t-regions', on => { regionsOn = on; uni.regionOn.value = on ? 1 : 0; legend.hidden = !on; paintIslands(); });
   $('t-reset').addEventListener('click', () => { select(-1, { fly: false }); const v = homeView(); flyTo(v.target, v.pos); });
@@ -752,7 +832,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   // ---------- Bucle ----------
   function resize() {
     const w = app.clientWidth, h = app.clientHeight; if (!w || !h) return;
-    size = { w, h }; renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix();
+    size = { w, h }; renderer.setSize(w, h, false); updateViewOffset(true);
   }
   new ResizeObserver(resize).observe(app); resize();
   applyTheme();
@@ -761,13 +841,25 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   if (reduceMotion) camera.position.copy(v0.pos);
   else { camera.position.set(-40, 26, 70); controls.target.set(-20, 0, 0); flyTo(v0.target, v0.pos, 2600); setTimeout(() => { labelsReady = true; }, 2300); }
 
+  // Pista de navegación (se oculta al primer gesto)
+  const hint = $('hint'), coarse = matchMedia('(pointer: coarse)').matches;
+  hint.textContent = coarse ? 'Arrastra para mover · pellizca para acercar · gira con dos dedos' : 'Arrastra para mover · rueda para acercar · clic derecho o Shift + arrastrar para girar';
+  const hideHint = () => hint.classList.add('out');
+  { const tr = $('tools').getBoundingClientRect(), a = app.getBoundingClientRect(); hint.style.bottom = `${a.bottom - tr.top + 10}px`; }
+  controls.addEventListener('start', hideHint); setTimeout(hideHint, 9000);
+
   function frame() {
+    waterU.uTime.value = reduceMotion ? 0 : performance.now() / 1000;
+    updateViewOffset(false);
     if (tween) {
       const k = tween.ms ? Math.min(1, (performance.now() - tween.t0) / tween.ms) : 1, e = ease(k);
       controls.target.lerpVectors(tween.ft, tween.tt, e); camera.position.lerpVectors(tween.fp, tween.tp, e);
       if (k >= 1) tween = null;
     }
     controls.update();
+    // no dejar que el mapa se vaya fuera de la pantalla al arrastrar
+    const tg = controls.target, cx = THREE.MathUtils.clamp(tg.x, -175, 180), cz = THREE.MathUtils.clamp(tg.z, -95, 95);
+    if (cx !== tg.x || cz !== tg.z) { camera.position.x += cx - tg.x; camera.position.z += cz - tg.z; tg.x = cx; tg.z = cz; }
     renderer.render(scene, camera);
     placeLabels(size.w, size.h);
     requestAnimationFrame(frame);
