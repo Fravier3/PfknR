@@ -34,8 +34,9 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); ove
 .lbl { position: absolute; left: 0; top: 0; font: 600 11px/1 var(--f-body); color: #fff; white-space: nowrap; letter-spacing: .01em;
   text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 0 6px rgba(0,0,0,.55); will-change: transform; }
 .lbl.sel { font-size: 14px; font-weight: 700; }
-.lbl.bar { font-size: 10.5px; font-weight: 600; color: #fff8e6; }
-.lbl.bar.on { font-size: 12.5px; font-weight: 700; color: #fff; }
+.lbl.bar, .lbl.sub, .lbl.sec { color: #14201b; text-shadow: 0 0 2px #fff, 0 0 2px #fff, 0 0 4px #fff, 0 0 6px rgba(255,255,255,.9); }
+.lbl.bar { font-size: 11px; font-weight: 700; }
+.lbl.bar.on { font-size: 13px; }
 
 .panel { position: absolute; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
   backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -76,6 +77,16 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
 #coms { display: flex; flex-wrap: wrap; gap: 5px; }
 #coms button { font: italic 500 12px var(--f-body); color: var(--ink); background: transparent; border: 1px dashed var(--line); border-radius: 999px; padding: 4px 9px; cursor: pointer; }
 #coms button:hover, #coms button.on { border-color: var(--accent); color: var(--accent); }
+#zoom { display: grid; gap: 8px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); }
+#subs, #secs { display: flex; flex-wrap: wrap; gap: 5px; max-height: 140px; overflow-y: auto; }
+#subs button, #secs button { display: inline-flex; align-items: center; gap: 6px; font: 500 12px var(--f-body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 3px 9px; cursor: pointer; }
+#subs button:hover, #subs button.on, #secs button:hover, #secs button.on { border-color: var(--accent); color: var(--accent); }
+#subs .sw { width: 9px; height: 9px; border-radius: 2px; }
+.zoom-note { font-size: 12px; color: var(--muted); margin: 0; }
+.lbl.sub { font-size: 10.5px; font-weight: 700; }
+.lbl.sec { font-size: 10.5px; font-weight: 600; }
+.lbl.sec::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #14201b; box-shadow: 0 0 0 1.5px #fff; margin-right: 4px; vertical-align: 1px; }
+.lbl.sec.on { font-size: 12.5px; font-weight: 700; color: #b8371a; }
 .lbl.com { font-style: italic; font-size: 11.5px; color: #fff; }
 #tools .sep { width: 1px; align-self: stretch; background: var(--line); margin: 4px 2px; }
 .bar-sel { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 9px; background: color-mix(in srgb, var(--accent) 12%, transparent); font: 600 14px var(--f-body); }
@@ -117,7 +128,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #list { max-height: 34vh; }
   #info { top: auto; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: 58vh; overflow-y: auto; gap: 10px; padding: 12px 14px; }
   #info.compact { gap: 6px; }
-  #info.compact > dl.stats, #info.compact > .nb-title, #info.compact > #nbs, #info.compact > #bars, #info.compact > #coms { display: none !important; }
+  #info.compact > dl.stats, #info.compact > .nb-title, #info.compact > #nbs, #info.compact > #bars, #info.compact > #coms, #info.compact #subs, #info.compact #secs, #info.compact .zoom-t { display: none !important; }
   #info.compact .sum { display: block; margin: 0; font: 500 13px var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
   #info .reg { margin-top: 3px; }
   #more { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 500 12.5px var(--f-body); cursor: pointer; }
@@ -158,7 +169,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <div class="nb-title">Colinda con</div>
     <div id="nbs"></div>
     <div class="nb-title" id="bars-title" hidden>Barrios</div>
-    <div class="bar-sel" id="bar-sel" hidden><span id="bar-name"></span><small id="bar-area"></small></div>
+    <div id="zoom" hidden>
+      <div class="bar-sel" id="bar-sel"><span id="bar-name"></span><small id="bar-area"></small></div>
+      <div class="nb-title zoom-t" id="subs-title" hidden>Subbarrios</div>
+      <div id="subs"></div>
+      <div class="nb-title zoom-t" id="secs-title" hidden>Sectores</div>
+      <div id="secs"></div>
+      <p class="zoom-note zoom-t" id="zoom-note" hidden></p>
+    </div>
     <div id="bars"></div>
     <div class="nb-title" id="coms-title" hidden>Comunidades</div>
     <div id="coms"></div>
@@ -177,7 +195,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <span id="coord" aria-live="off"></span>
   </div>
   <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
-  <div id="credit">Límites: U.S. Census Bureau 1:500k · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
+  <div id="credit">Límites: U.S. Census Bureau · Sectores: © OpenStreetMap · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
   <div id="tip" hidden></div>
   <div id="hint" class="panel" aria-live="polite"></div>
 </div>
@@ -519,6 +537,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
   function placeLabels(w, h) {
     const on = showLabels && labelsReady, taken = [];
+    for (const o of ZM.secLabels.slice().sort((a, b) => (b.j === ZM.secSel) - (a.j === ZM.secSel))) { placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.12, on, taken, w, h); o.el.classList.toggle('on', o.j === ZM.secSel); }
+    for (const o of ZM.subLabels) placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.14, on, taken, w, h);
     if (COM.label) placeOne(COM.label, (COM.label.isl ? ISL_H : COM.label.lh * EX) + 0.2, on, taken, w, h);
     // barrios del municipio seleccionado primero
     const bl = BAR.labels.slice().sort((a, b) => (b.k === BAR.sel) - (a.k === BAR.sel) || (b.k === BAR.hov) - (a.k === BAR.hov) || b.area - a.area);
@@ -630,7 +650,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     dropLines(BAR.lines); dropLines(barSelLines);
     BAR.labels.forEach(o => o.el.remove()); BAR.labels = []; BAR.list = []; BAR.fips = null; BAR.sel = BAR.hov = -1;
     uni.barOn.value = 0; uni.selBar.value = uni.hovBar.value = -1;
-    $('bars').textContent = ''; $('bar-sel').hidden = true; $('bars-title').hidden = true;
+    $('bars').textContent = ''; $('zoom').hidden = true; $('bars-title').hidden = true;
+    clearZoom();
     clearComunidades();
   }
   // ---------- Comunidades del Censo (p. ej. Corazón en Guayama): se listan en la ficha y se muestran al tocarlas ----------
@@ -690,6 +711,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const ct = new THREE.CanvasTexture(cc); ct.encoding = THREE.sRGBEncoding; ct.anisotropy = Math.min(4, maxAniso);
     const it = new THREE.CanvasTexture(ic); it.minFilter = it.magFilter = THREE.NearestFilter; it.generateMipmaps = false;
     uni.barMap.value = ct; uni.barIdMap.value = it;
+    Object.assign(BAR, { ctx: c1, tp, tex: ct });
     uni.barBox.value.set((lo0 - RB.w) / (RB.e - RB.w), (la0 - RB.s) / (RB.n - RB.s), (lo1 - RB.w) / (RB.e - RB.w), (la1 - RB.s) / (RB.n - RB.s));
     uni.barOn.value = 1;
     // límites de barrio sobre el relieve
@@ -727,14 +749,82 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (!BAR.list[k]) return;
     BAR.sel = k; uni.selBar.value = k;
     const b = BAR.list[k];
-    $('bar-name').textContent = 'Barrio ' + barName(b); $('bar-area').textContent = `${fmt.format(b.areaKm2)} km²`; $('bar-sel').hidden = false;
+    $('bar-name').textContent = 'Barrio ' + barName(b); $('bar-area').textContent = `${fmt.format(b.areaKm2)} km²`; $('zoom').hidden = false;
     [...$('bars').children].forEach((el, j) => el.classList.toggle('on', j === k));
     dropLines(barSelLines);
     const bl = buildLines(b.polys, 0.014);
     if (bl.main.length) { const l = mkLines(bl.main, barLineSelMat, 4); exGroup.add(l); barSelLines.push(l); }
     if (bl.isl.length) { const l = mkLines(bl.isl, barLineSelMat, 4); scene.add(l); barSelLines.push(l); }
-    if (fly) { setCompact(true); flyToBox(polysBox(b.polys), 6); }
+    if (fly) { setCompact(true); flyToBox(polysBox(b.polys), 4); }
+    showZoom(k);
     window.dispatchEvent(new CustomEvent('barrio:select', { detail: { municipio: DATA[selected].name, id: b.id, name: b.name, pueblo: b.pueblo } }));
+  }
+
+  // ---------- Zoom dentro del barrio: subbarrios del Censo y sectores de OpenStreetMap ----------
+  const ZM = { subCache: new Map(), secCache: new Map(), subs: [], secs: [], subLabels: [], secLabels: [], lines: [], selLines: [], painted: -1, subSel: -1, secSel: -1, req: 0 };
+  const loadJSON = (cache, url) => { if (!cache.has(url)) cache.set(url, fetch(url).then(r => r.ok ? r.json() : []).catch(() => [])); return cache.get(url); };
+  const subAt = (lon, lat) => ZM.subs.findIndex(s => s.polys.some(p => insidePoly([lon, lat], p)));
+  function paintBarrio(k, subs) {
+    // pinta el barrio k en la textura de color: liso o dividido en subbarrios
+    const b = BAR.list[k]; if (!b || !BAR.ctx) return;
+    const ctx = BAR.ctx, fill = (polys, col) => { ctx.fillStyle = ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.beginPath();
+      polys.forEach(p => p.forEach(r => r.forEach((pt, j) => { const [x, y] = BAR.tp(pt); j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }))); ctx.fill('evenodd'); ctx.stroke(); };
+    fill(b.polys, b.color);
+    (subs || []).forEach(sb => fill(sb.polys, sb.color));
+    BAR.tex.needsUpdate = true;
+  }
+  function clearZoom() {
+    ZM.req++;
+    if (ZM.painted >= 0 && BAR.list[ZM.painted]) paintBarrio(ZM.painted, null);
+    ZM.painted = -1; ZM.subs = []; ZM.secs = []; ZM.subSel = ZM.secSel = -1;
+    dropLines(ZM.lines); dropLines(ZM.selLines);
+    ZM.subLabels.concat(ZM.secLabels).forEach(o => o.el.remove()); ZM.subLabels = []; ZM.secLabels = [];
+    ['subs', 'secs'].forEach(id => $(id).textContent = ''); ['subs-title', 'secs-title', 'zoom-note'].forEach(id => $(id).hidden = true);
+  }
+  const mkLabel = (cls, text, lon, lat, extra) => { const el = document.createElement('div'); el.className = 'lbl ' + cls; el.textContent = text; labelsEl.appendChild(el);
+    const [lx, ly] = proj(lon, lat); return { el, w: 0, vis: null, lx, ly, lh: hAt(lx, ly), isl: !landAt(lon, lat), ...extra }; };
+  async function showZoom(k) {
+    clearZoom();
+    const req = ZM.req, b = BAR.list[k], fips = DATA[selected].id;
+    const [subsAll, secsAll] = await Promise.all([loadJSON(ZM.subCache, `data/subbarrios/${fips}.json`), loadJSON(ZM.secCache, `data/sectores/${fips}.json`)]);
+    if (req !== ZM.req || BAR.list[k] !== b) return;
+    // subbarrios: se pintan con colores propios dentro del barrio
+    ZM.subs = subsAll.filter(sb => sb.barrio === b.id);
+    ZM.subs.forEach((sb, j) => { sb.color = BAR_PALETTE[(b.c + 3 + j * 3) % BAR_PALETTE.length]; });
+    if (ZM.subs.length) {
+      ZM.painted = k; paintBarrio(k, ZM.subs);
+      const bl = buildLines(ZM.subs.flatMap(sb => sb.polys), 0.012);
+      for (const [arr, parent] of [[bl.main, exGroup], [bl.isl, scene]]) if (arr.length) { const l = mkLines(arr, barLineMat, 3); parent.add(l); ZM.lines.push(l); }
+      ZM.subLabels = ZM.subs.map((sb, j) => mkLabel('sub', sb.name, sb.label[0], sb.label[1], { j }));
+      $('subs-title').textContent = `Subbarrios (${ZM.subs.length})`; $('subs-title').hidden = false;
+      ZM.subs.forEach((sb, j) => { const bt = document.createElement('button'); bt.type = 'button';
+        const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = sb.color; bt.append(sw, sb.name);
+        bt.addEventListener('click', () => selectSub(j, true)); $('subs').append(bt); });
+    }
+    // sectores: puntos con nombre
+    ZM.secs = secsAll.filter(sc => sc.barrio === b.id);
+    if (ZM.secs.length) {
+      ZM.secLabels = ZM.secs.map((sc, j) => mkLabel('sec', sc.name.replace(/^Sector\s+/i, ''), sc.lon, sc.lat, { j }));
+      $('secs-title').textContent = `Sectores (${ZM.secs.length})`; $('secs-title').hidden = false;
+      ZM.secs.forEach((sc, j) => { const bt = document.createElement('button'); bt.type = 'button'; bt.textContent = sc.name;
+        bt.addEventListener('click', () => selectSec(j)); $('secs').append(bt); });
+    }
+    if (!ZM.subs.length && !ZM.secs.length) { $('zoom-note').textContent = 'Este barrio no tiene subbarrios ni sectores registrados.'; $('zoom-note').hidden = false; }
+  }
+  function selectSub(j, fly) {
+    const sb = ZM.subs[j]; if (!sb) return;
+    ZM.subSel = j; [...$('subs').children].forEach((el, i) => el.classList.toggle('on', i === j));
+    dropLines(ZM.selLines);
+    const bl = buildLines(sb.polys, 0.02);
+    for (const [arr, parent] of [[bl.main, exGroup], [bl.isl, scene]]) if (arr.length) { const l = mkLines(arr, barLineSelMat, 5); parent.add(l); ZM.selLines.push(l); }
+    $('bar-name').textContent = `${sb.name} · ${barName(BAR.list[BAR.sel])}`; $('bar-area').textContent = `${fmt.format(sb.areaKm2)} km²`;
+    if (fly) { setCompact(true); flyToBox(polysBox(sb.polys), 2); }
+  }
+  function selectSec(j) {
+    const sc = ZM.secs[j]; if (!sc) return;
+    ZM.secSel = j; [...$('secs').children].forEach((el, i) => el.classList.toggle('on', i === j));
+    const [x, y] = proj(sc.lon, sc.lat); setCompact(true);
+    flyToBox({ x0: x - 1.2, x1: x + 1.2, y0: y - 1.2, y1: y + 1.2 }, 3);
   }
 
   // ---------- Selección ----------
@@ -817,7 +907,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const onMain = p.idx >= 0 && landAt(...unproj(p.x, p.y));
     const h = onMain ? Math.round(hAt(p.x, p.y) * 1000) : null;
     if (p.idx >= 0) {
-      tip.hidden = false; tip.textContent = bk >= 0 ? `${barName(BAR.list[bk])} · ${DATA[p.idx].name}` : DATA[p.idx].name;
+      const sj = bk >= 0 && bk === BAR.sel && ZM.subs.length ? subAt(...unproj(p.x, p.y)) : -1;
+      tip.hidden = false; tip.textContent = sj >= 0 ? `${ZM.subs[sj].name} · ${barName(BAR.list[bk])}` : bk >= 0 ? `${barName(BAR.list[bk])} · ${DATA[p.idx].name}` : DATA[p.idx].name;
       if (h != null) { const s = document.createElement('small'); s.textContent = `${fmt0.format(h)} m`; tip.append(s); }
       tip.style.transform = `translate(${e.clientX - p.r.left + 14}px,${e.clientY - p.r.top + 14}px)`;
     } else tip.hidden = true;
@@ -829,7 +920,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null;
     if (moved > 6) return;
     const p = pick(e);
-    if (p.idx >= 0 && p.idx === selected && BAR.list.length) { const k = barrioAt(...unproj(p.x, p.y)); if (k >= 0) { selectBarrio(k); return; } }
+    if (p.idx >= 0 && p.idx === selected && BAR.list.length) {
+      const ll = unproj(p.x, p.y), k = barrioAt(...ll);
+      if (k >= 0 && k === BAR.sel && ZM.subs.length) { const j = subAt(...ll); if (j >= 0) { selectSub(j); return; } }
+      if (k >= 0) { selectBarrio(k, { fly: k !== BAR.sel }); return; }
+    }
     if (p.idx >= 0) select(p.idx); else if (selected >= 0) select(-1);
   });
   controls.addEventListener('start', () => { if (tween) { tween = null; polarLimits(false); } tip.hidden = true; });
