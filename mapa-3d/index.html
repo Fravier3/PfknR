@@ -41,6 +41,8 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); ove
 .lbl { position: absolute; left: 0; top: 0; font: 600 11px/1 var(--f-body); color: #fff; white-space: nowrap; letter-spacing: .01em;
   text-shadow: 0 1px 2px rgba(0,0,0,.85), 0 0 6px rgba(0,0,0,.55); will-change: transform; }
 .lbl.sel { font-size: 14px; font-weight: 700; }
+.lbl.bar { font-size: 10.5px; font-weight: 600; color: #fff8e6; }
+.lbl.bar.on { font-size: 12.5px; font-weight: 700; color: #fff; }
 
 .panel { position: absolute; background: var(--panel); border: 1px solid var(--line); border-radius: 14px;
   backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
@@ -74,6 +76,12 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
 #nbs button { font: 500 12.5px var(--f-body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; cursor: pointer; }
 #nbs button:hover { border-color: var(--accent); color: var(--accent); }
 #nbs .none { font-size: 13px; color: var(--muted); }
+#bars { display: flex; flex-wrap: wrap; gap: 5px; max-height: 150px; overflow-y: auto; }
+#bars button { display: inline-flex; align-items: center; gap: 6px; font: 500 12px var(--f-body); color: var(--ink); background: transparent; border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; cursor: pointer; }
+#bars button:hover, #bars button.on { border-color: var(--accent); color: var(--accent); }
+#bars .sw { width: 9px; height: 9px; border-radius: 50%; }
+.bar-sel { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 9px; background: color-mix(in srgb, var(--accent) 12%, transparent); font: 600 14px var(--f-body); }
+.bar-sel small { font: 400 11.5px var(--f-mono); color: var(--muted); }
 
 #tools { left: max(16px, env(safe-area-inset-left, 0px)); bottom: 16px; padding: 6px; display: flex; gap: 4px; align-items: center; z-index: 2; flex-wrap: wrap; max-width: calc(100% - 32px); box-sizing: border-box; }
 #tools button { font: 500 12.5px var(--f-body); color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 7px 10px; cursor: pointer; }
@@ -140,6 +148,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     </dl>
     <div class="nb-title">Colinda con</div>
     <div id="nbs"></div>
+    <div class="nb-title" id="bars-title" hidden>Barrios</div>
+    <div class="bar-sel" id="bar-sel" hidden><span id="bar-name"></span><small id="bar-area"></small></div>
+    <div id="bars"></div>
   </section>
 
   <div id="tools" class="panel">
@@ -303,18 +314,36 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   DATA.forEach((m, i) => { const [r, g, b] = hexRGB(regColor.get(m.region) || '#ffffff'); regData.set([r, g, b, 255], i * 4); });
   const regTex = new THREE.DataTexture(regData, 256, 1, THREE.RGBAFormat); regTex.encoding = THREE.sRGBEncoding;
   regTex.minFilter = regTex.magFilter = THREE.NearestFilter; regTex.needsUpdate = true;
-  const uni = { idMap: { value: idTex }, regMap: { value: regTex }, regionOn: { value: 0 }, selId: { value: -1 }, hovId: { value: -1 }, accent: { value: new THREE.Color() } };
+  const uni = { barMap: { value: null }, barIdMap: { value: null }, barBox: { value: new THREE.Vector4(0, 0, 1, 1) }, barOn: { value: 0 }, hovBar: { value: -1 }, selBar: { value: -1 },
+    idMap: { value: idTex }, regMap: { value: regTex }, regionOn: { value: 0 }, selId: { value: -1 }, hovId: { value: -1 }, accent: { value: new THREE.Color() } };
   const terrainMat = new THREE.MeshStandardMaterial({ map: relTex, roughness: 0.95, metalness: 0, alphaTest: 0.5 });
   terrainMat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, uni);
-    sh.fragmentShader = 'uniform sampler2D idMap; uniform sampler2D regMap; uniform float regionOn; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+    sh.fragmentShader = 'uniform sampler2D barMap; uniform sampler2D barIdMap; uniform vec4 barBox; uniform float barOn; uniform float hovBar; uniform float selBar;\nuniform sampler2D idMap; uniform sampler2D regMap; uniform float regionOn; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       float mid = floor(texture2D(idMap, vUv).r * 255.0 + 0.5) - 1.0;
       if (regionOn > 0.5 && mid >= 0.0) {
         vec3 rc = texture2D(regMap, vec2((mid + 0.5) / 256.0, 0.5)).rgb;
         float l = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
         diffuseColor.rgb = mix(diffuseColor.rgb, rc * (0.55 + 2.2 * l), 0.72);
       }
-      if (abs(mid - selId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, accent, 0.5);
+      bool inBar = false;
+      if (barOn > 0.5 && abs(mid - selId) < 0.5) {
+        vec2 bl = (vUv - barBox.xy) / (barBox.zw - barBox.xy);
+        if (bl.x >= 0.0 && bl.y >= 0.0 && bl.x <= 1.0 && bl.y <= 1.0) {
+          vec4 bc = texture2D(barMap, bl);
+          if (bc.a > 0.5) {
+            inBar = true;
+            float bid = floor(texture2D(barIdMap, bl).r * 255.0 + 0.5) - 1.0;
+            float l = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+            vec3 c = bc.rgb * (0.5 + 2.4 * l);
+            if (abs(bid - selBar) < 0.5) c = mix(c, vec3(1.0), 0.35);
+            else if (abs(bid - hovBar) < 0.5) c = mix(c, vec3(1.0), 0.22);
+            diffuseColor.rgb = mix(diffuseColor.rgb, c, 0.8);
+          }
+        }
+      }
+      if (inBar) {}
+      else if (abs(mid - selId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, accent, 0.5);
       else if (abs(mid - hovId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), 0.3);`);
   };
   const exGroup = new THREE.Group(); scene.add(exGroup);   // lo que se escala con la exageración vertical
@@ -415,24 +444,26 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const order = muni.slice().sort((a, b) => b.m.areaKm2 - a.m.areaKm2);
   const v3 = new THREE.Vector3();
   const anchorY = o => o.isl ? ISL_H : o.lh * EX;
-  function placeLabels(w, h) {
-    const on = showLabels && labelsReady;
-    const list = order.slice().sort((a, b) => (b.i === selected) - (a.i === selected) || (b.i === hovered) - (a.i === hovered));
-    const taken = [];
-    for (const o of list) {
-      let ok = on;
-      if (ok) {
-        if (!o.w) o.w = o.el.offsetWidth || o.m.name.length * 6.5;
-        v3.set(o.lx, anchorY(o) + 0.3, -o.ly).project(camera);
-        ok = v3.z < 1 && Math.abs(v3.x) < 1.05 && Math.abs(v3.y) < 1.05;
-        const x = (v3.x + 1) / 2 * w, y = (1 - v3.y) / 2 * h;
-        const r = { x0: x - o.w / 2 - 3, x1: x + o.w / 2 + 3, y0: y - 9, y1: y + 9 };
-        if (ok) for (const t of taken) if (r.x0 < t.x1 && r.x1 > t.x0 && r.y0 < t.y1 && r.y1 > t.y0) { ok = false; break; }
-        if (ok) { taken.push(r); o.el.style.transform = `translate(${(x - o.w / 2).toFixed(1)}px,${(y - 6).toFixed(1)}px)`; }
-      }
-      if (o.vis !== ok) { o.el.style.visibility = ok ? 'visible' : 'hidden'; o.vis = ok; }
-      o.el.classList.toggle('sel', o.i === selected);
+  function placeOne(o, y3, on, taken, w, h) {
+    let ok = on;
+    if (ok) {
+      if (!o.w) o.w = o.el.offsetWidth || 60;
+      v3.set(o.lx, y3, -o.ly).project(camera);
+      ok = v3.z < 1 && Math.abs(v3.x) < 1.05 && Math.abs(v3.y) < 1.05;
+      const x = (v3.x + 1) / 2 * w, y = (1 - v3.y) / 2 * h;
+      const r = { x0: x - o.w / 2 - 3, x1: x + o.w / 2 + 3, y0: y - 8, y1: y + 8 };
+      if (ok) for (const t of taken) if (r.x0 < t.x1 && r.x1 > t.x0 && r.y0 < t.y1 && r.y1 > t.y0) { ok = false; break; }
+      if (ok) { taken.push(r); o.el.style.transform = `translate(${(x - o.w / 2).toFixed(1)}px,${(y - 6).toFixed(1)}px)`; }
     }
+    if (o.vis !== ok) { o.el.style.visibility = ok ? 'visible' : 'hidden'; o.vis = ok; }
+  }
+  function placeLabels(w, h) {
+    const on = showLabels && labelsReady, taken = [];
+    // barrios del municipio seleccionado primero
+    const bl = BAR.labels.slice().sort((a, b) => (b.k === BAR.sel) - (a.k === BAR.sel) || (b.k === BAR.hov) - (a.k === BAR.hov) || b.area - a.area);
+    for (const o of bl) { placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.15, on, taken, w, h); o.el.classList.toggle('on', o.k === BAR.sel || o.k === BAR.hov); }
+    const list = order.slice().sort((a, b) => (b.i === selected) - (a.i === selected) || (b.i === hovered) - (a.i === hovered));
+    for (const o of list) { placeOne(o, anchorY(o) + 0.3, on && !(BAR.list.length && o.i === selected), taken, w, h); o.el.classList.toggle('sel', o.i === selected); }
   }
 
   // ---------- Cámara ----------
@@ -454,9 +485,110 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const d = THREE.MathUtils.clamp(Math.sqrt(o.m.areaKm2) * 3.6, 30, 110) * Math.max(1, 0.85 * size.h / size.w);
     const dir = camera.position.clone().sub(controls.target).normalize();
     if (dir.y < 0.6) { dir.y = 0.6; dir.normalize(); }
-    flyTo(target, target.clone().add(dir.multiplyScalar(d)));
+    framed(target, dir, d);
+  }
+  // Corre el punto de mira para que el municipio no quede detrás de la ficha
+  function framed(target, dir, d) {
+    const flat = new THREE.Vector3(dir.x, 0, dir.z); if (flat.lengthSq() < 1e-6) flat.set(0, 0, 1); flat.normalize();
+    const right = new THREE.Vector3(flat.z, 0, -flat.x);
+    const t = target.clone();
+    if (size.w <= 640) t.addScaledVector(flat, d * 0.12);   // teléfono: la hoja tapa la mitad inferior
+    else t.addScaledVector(right, d * 0.16);                // computadora: la ficha está a la derecha
+    flyTo(t, t.clone().add(dir.clone().multiplyScalar(d)));
   }
   const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
+  // ---------- Barrios (TIGER 2014 del Censo; se cargan al seleccionar un municipio) ----------
+  const BAR = { list: [], labels: [], lines: [], sel: -1, hov: -1, cache: new Map(), req: 0, fips: null };
+  const barLineMat = new THREE.LineBasicMaterial({ color: 0x10201a, transparent: true, opacity: 0.6, depthWrite: false });
+  const barLineSelMat = new THREE.LineBasicMaterial({ color: 0xffffff, depthWrite: false });
+  const autoColor = k => '#' + new THREE.Color().setHSL(((k * 137.508) % 360) / 360, 0.6, 0.62).getHexString();
+  const barName = b => b.pueblo ? `${b.name} Pueblo` : b.name;
+  function insidePoly(pt, poly) {
+    let c = false;
+    for (const r of poly) for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+      const [xi, yi] = r[i], [xj, yj] = r[j];
+      if ((yi > pt[1]) !== (yj > pt[1]) && pt[0] < (xj - xi) * (pt[1] - yi) / (yj - yi) + xi) c = !c;
+    }
+    return c;
+  }
+  const barrioAt = (lon, lat) => BAR.list.findIndex(b => b.polys.some(p => insidePoly([lon, lat], p)));
+  function dropLines(arr) { arr.forEach(l => { l.parent.remove(l); l.geometry.dispose(); }); arr.length = 0; }
+  let barSelLines = [];
+  function clearBarrios() {
+    dropLines(BAR.lines); dropLines(barSelLines);
+    BAR.labels.forEach(o => o.el.remove()); BAR.labels = []; BAR.list = []; BAR.fips = null; BAR.sel = BAR.hov = -1;
+    uni.barOn.value = 0; uni.selBar.value = uni.hovBar.value = -1;
+    $('bars').textContent = ''; $('bar-sel').hidden = true; $('bars-title').hidden = true;
+  }
+  async function showBarrios(i) {
+    const req = ++BAR.req; clearBarrios();
+    const id = DATA[i].id;
+    if (!BAR.cache.has(id)) BAR.cache.set(id, fetch(`data/barrios/${id}.json`).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); }));
+    let list;
+    try { list = await BAR.cache.get(id); } catch (e) { BAR.cache.delete(id); return; }
+    if (req !== BAR.req || selected !== i) return;
+    BAR.list = list; BAR.fips = id;
+    list.forEach((b, k) => { if (!b.color) b.color = autoColor(k); });
+    // texturas de color e identificador sobre el rectángulo del municipio
+    let lo0 = 1e9, lo1 = -1e9, la0 = 1e9, la1 = -1e9;
+    list.forEach(b => b.polys.forEach(p => p[0].forEach(([x, y]) => { lo0 = Math.min(lo0, x); lo1 = Math.max(lo1, x); la0 = Math.min(la0, y); la1 = Math.max(la1, y); })));
+    const asp = (lo1 - lo0) * COS / (la1 - la0);
+    const CW = asp >= 1 ? 1024 : Math.round(1024 * asp), CH = asp >= 1 ? Math.round(1024 / asp) : 1024;
+    const cc = document.createElement('canvas'), ic = document.createElement('canvas'); cc.width = ic.width = CW; cc.height = ic.height = CH;
+    const c1 = cc.getContext('2d'), c2 = ic.getContext('2d'); c2.fillStyle = '#000'; c2.fillRect(0, 0, CW, CH);
+    const tp = ([x, y]) => [(x - lo0) / (lo1 - lo0) * CW, (la1 - y) / (la1 - la0) * CH];
+    list.forEach((b, k) => {
+      for (const [ctx, col] of [[c1, b.color], [c2, `rgb(${k + 1},0,0)`]]) {
+        ctx.fillStyle = ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath();
+        b.polys.forEach(p => p.forEach(r => r.forEach((pt, j) => { const [x, y] = tp(pt); j ? ctx.lineTo(x, y) : ctx.moveTo(x, y); })));
+        ctx.fill('evenodd'); ctx.stroke();
+      }
+    });
+    uni.barMap.value?.dispose(); uni.barIdMap.value?.dispose();
+    const ct = new THREE.CanvasTexture(cc); ct.encoding = THREE.sRGBEncoding; ct.anisotropy = Math.min(4, maxAniso);
+    const it = new THREE.CanvasTexture(ic); it.minFilter = it.magFilter = THREE.NearestFilter; it.generateMipmaps = false;
+    uni.barMap.value = ct; uni.barIdMap.value = it;
+    uni.barBox.value.set((lo0 - RB.w) / (RB.e - RB.w), (la0 - RB.s) / (RB.n - RB.s), (lo1 - RB.w) / (RB.e - RB.w), (la1 - RB.s) / (RB.n - RB.s));
+    uni.barOn.value = 1;
+    // límites de barrio sobre el relieve
+    const bl = buildLines(list.flatMap(b => b.polys), 0.007);
+    if (bl.main.length) { const l = mkLines(bl.main, barLineMat, 2); exGroup.add(l); BAR.lines.push(l); }
+    if (bl.isl.length) { const l = mkLines(bl.isl, barLineMat, 2); scene.add(l); BAR.lines.push(l); }
+    // etiquetas y lista en la ficha
+    const bars = $('bars');
+    list.forEach((b, k) => {
+      const el = document.createElement('div'); el.className = 'lbl bar'; el.textContent = barName(b); labelsEl.appendChild(el);
+      const [lx, ly] = proj(...b.label);
+      BAR.labels.push({ k, el, w: 0, vis: null, lx, ly, lh: hAt(lx, ly), isl: !landAt(...b.label), area: b.areaKm2 });
+      const bt = document.createElement('button'); bt.type = 'button';
+      const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = b.color;
+      bt.append(sw, barName(b));
+      bt.addEventListener('click', () => selectBarrio(k, { fly: true }));
+      bt.addEventListener('mouseenter', () => setHoverBar(k)); bt.addEventListener('mouseleave', () => setHoverBar(-1));
+      bars.append(bt);
+    });
+    $('bars-title').textContent = `Barrios (${list.length})`; $('bars-title').hidden = false;
+  }
+  function setHoverBar(k) { if (k === BAR.hov) return; BAR.hov = k; uni.hovBar.value = k; }
+  function selectBarrio(k, { fly = false } = {}) {
+    if (!BAR.list[k]) return;
+    BAR.sel = k; uni.selBar.value = k;
+    const b = BAR.list[k];
+    $('bar-name').textContent = 'Barrio ' + barName(b); $('bar-area').textContent = `${fmt.format(b.areaKm2)} km²`; $('bar-sel').hidden = false;
+    [...$('bars').children].forEach((el, j) => el.classList.toggle('on', j === k));
+    dropLines(barSelLines);
+    const bl = buildLines(b.polys, 0.014);
+    if (bl.main.length) { const l = mkLines(bl.main, barLineSelMat, 4); exGroup.add(l); barSelLines.push(l); }
+    if (bl.isl.length) { const l = mkLines(bl.isl, barLineSelMat, 4); scene.add(l); barSelLines.push(l); }
+    if (fly) {
+      const o = BAR.labels[k], target = new THREE.Vector3(o.lx, (o.isl ? ISL_H : o.lh * EX) * 0.6, -o.ly);
+      const d = THREE.MathUtils.clamp(Math.sqrt(b.areaKm2) * 5, 12, 45) * Math.max(1, 0.85 * size.h / size.w);
+      const dir = camera.position.clone().sub(controls.target).normalize(); if (dir.y < 0.6) { dir.y = 0.6; dir.normalize(); }
+      framed(target, dir, d);
+    }
+    window.dispatchEvent(new CustomEvent('barrio:select', { detail: { municipio: DATA[selected].name, id: b.id, name: b.name, pueblo: b.pueblo } }));
+  }
 
   // ---------- Selección ----------
   const info = $('info');
@@ -467,7 +599,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     selected = i; uni.selId.value = i; paintIslands(); setSelLines(i);
     app.classList.toggle('has-sel', i >= 0);
     renderList();
-    if (i < 0) { info.hidden = true; dispatch(null); return; }
+    if (i < 0) { info.hidden = true; BAR.req++; clearBarrios(); dispatch(null); return; }
     const m = DATA[i];
     $('i-code').textContent = m.id; $('i-name').textContent = m.name;
     $('i-reg').textContent = 'Región ' + m.region; $('i-regsw').style.background = regColor.get(m.region);
@@ -484,6 +616,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       nbs.append(b);
     });
     info.hidden = false;
+    showBarrios(i);
     if (fly) flyToMuni(i);
     dispatch(m);
   }
@@ -531,21 +664,24 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (e.pointerType !== 'mouse' || down) return;
     const p = pick(e);
     setHover(p.idx);
+    const bk = p.idx >= 0 && p.idx === selected && BAR.list.length ? barrioAt(...unproj(p.x, p.y)) : -1;
+    setHoverBar(bk);
     const onMain = p.idx >= 0 && landAt(...unproj(p.x, p.y));
     const h = onMain ? Math.round(hAt(p.x, p.y) * 1000) : null;
     if (p.idx >= 0) {
-      tip.hidden = false; tip.textContent = DATA[p.idx].name;
+      tip.hidden = false; tip.textContent = bk >= 0 ? `${barName(BAR.list[bk])} · ${DATA[p.idx].name}` : DATA[p.idx].name;
       if (h != null) { const s = document.createElement('small'); s.textContent = `${fmt0.format(h)} m`; tip.append(s); }
       tip.style.transform = `translate(${e.clientX - p.r.left + 14}px,${e.clientY - p.r.top + 14}px)`;
     } else tip.hidden = true;
     if (isFinite(p.t)) coord.textContent = fmtLL(unproj(p.x, p.y)) + (h != null ? ` · ${fmt0.format(h)} m` : '');
   });
-  canvas.addEventListener('pointerleave', () => { setHover(-1); tip.hidden = true; });
+  canvas.addEventListener('pointerleave', () => { setHover(-1); setHoverBar(-1); tip.hidden = true; });
   canvas.addEventListener('pointerup', e => {
     if (!down) return;
     const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null;
     if (moved > 6) return;
     const p = pick(e);
+    if (p.idx >= 0 && p.idx === selected && BAR.list.length) { const k = barrioAt(...unproj(p.x, p.y)); if (k >= 0) { selectBarrio(k); return; } }
     if (p.idx >= 0) select(p.idx); else if (selected >= 0) select(-1);
   });
   controls.addEventListener('start', () => { tween = null; tip.hidden = true; });
@@ -645,6 +781,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     data: DATA,
     select(key) { const i = typeof key === 'number' ? key : DATA.findIndex(m => m.id === key || norm(m.name) === norm(String(key))); if (i >= 0) select(i); return i; },
     clear() { select(-1); },
+    selectBarrio(name) { const k = BAR.list.findIndex(b => norm(b.name) === norm(String(name)) || b.id === name); if (k >= 0) selectBarrio(k, { fly: true }); return k; },
+    get barrios() { return BAR.list.map(b => ({ id: b.id, name: b.name, pueblo: b.pueblo, areaKm2: b.areaKm2, color: b.color })); },
     reset() { $('t-reset').click(); },
     regions: REGIONS.map(([name, color]) => ({ name, color, municipios: DATA.filter(m => m.region === name).map(m => m.name) })),
     showRegions(on = true) { if ((($('t-regions').getAttribute('aria-pressed') === 'true')) !== on) $('t-regions').click(); },
