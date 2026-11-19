@@ -25,6 +25,11 @@ Un arreglo de 78 objetos, en orden alfabético:
 | `polys` | Polígonos en `[lon, lat]`; varios cuando el municipio tiene islas o cayos |
 | `label` | Punto interior para la etiqueta, `[lon, lat]` |
 | `nb` | Códigos FIPS de los municipios colindantes |
+| `region` | Una de 6 regiones: Noroeste, Oeste, Montaña, Norte central, Sur, Este |
+
+## Regiones
+
+Las 6 regiones salen del mapa de referencia `referencia/mapa-regiones.png`. Los nombres de las regiones son descriptivos (el mapa no los trae). La asignación está en `scripts/regiones.js`; para cambiar un municipio de región, edita ese archivo y corre `node scripts/regiones.js`.
 
 ## Fuentes
 
@@ -40,6 +45,8 @@ PRMap.select('Ponce');          // o por FIPS: PRMap.select('72113')
 PRMap.clear();
 PRMap.reset();                  // vista inicial
 PRMap.heightAt(-66.59, 18.17);  // altura aproximada en metros
+PRMap.showRegions(true);        // colorea por regiones
+PRMap.regions;                  // [{ name, color, municipios: [...] }]
 PRMap.data;                     // el arreglo de municipios.json
 
 window.addEventListener('municipio:select', e => {

@@ -79,6 +79,13 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
 .exag output { font: 500 12px var(--f-mono); color: var(--muted); min-width: 3ch; font-variant-numeric: tabular-nums; }
 #coord { font: 400 11.5px var(--f-mono); color: var(--muted); padding: 0 8px; font-variant-numeric: tabular-nums; min-width: 24ch; }
 
+#legend { right: max(16px, env(safe-area-inset-right, 0px)); bottom: 52px; padding: 12px 14px; z-index: 2; display: grid; gap: 7px; min-width: 170px; }
+#legend .t { font: 500 10.5px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+#legend button { display: flex; align-items: center; gap: 8px; font: 500 13px var(--f-body); color: var(--ink); background: transparent; border: 0; padding: 2px 0; cursor: pointer; text-align: left; }
+#legend button span.n { margin-left: auto; font: 400 11px var(--f-mono); color: var(--muted); }
+#legend button:hover { color: var(--accent); }
+.sw { width: 12px; height: 12px; border-radius: 3px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
+.reg { display: flex; align-items: center; gap: 7px; font: 500 13px var(--f-body); color: var(--muted); margin-top: 6px; }
 #credit { position: absolute; right: max(16px, env(safe-area-inset-right, 0px)); bottom: 16px; z-index: 1; font: 400 10.5px var(--f-mono); color: var(--muted); text-align: right; max-width: 46ch; line-height: 1.4; }
 #tip { position: absolute; left: 0; top: 0; pointer-events: none; z-index: 4; font: 600 12.5px var(--f-body);
   background: var(--ink); color: var(--bg); padding: 5px 8px; border-radius: 6px; white-space: nowrap; }
@@ -95,7 +102,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #info { top: auto; left: max(16px, env(safe-area-inset-left, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: 48vh; overflow-y: auto; gap: 10px; }
   #info h2 { font-size: 22px; }
   #tools { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-  #app.has-sel #tools, #coord, #tip { display: none; }
+  #app.has-sel #tools, #app.has-sel #legend, #coord, #tip { display: none; }
+  #legend { left: max(16px, env(safe-area-inset-left, 0px)); right: auto; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); grid-template-columns: 1fr 1fr; column-gap: 14px; }
+  #legend .t { grid-column: 1 / -1; }
 }
 </style>
 
@@ -113,7 +122,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 
   <section id="info" class="panel" hidden aria-live="polite">
     <div class="head">
-      <div><span class="eyebrow">Municipio · FIPS <span id="i-code"></span></span><h2 id="i-name"></h2></div>
+      <div><span class="eyebrow">Municipio · FIPS <span id="i-code"></span></span><h2 id="i-name"></h2><div class="reg"><span class="sw" id="i-regsw"></span><span id="i-reg"></span></div></div>
       <button id="close" type="button" aria-label="Cerrar ficha">✕</button>
     </div>
     <dl class="stats">
@@ -129,11 +138,13 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   <div id="tools" class="panel">
     <button id="t-labels" type="button" aria-pressed="true">Nombres</button>
     <button id="t-borders" type="button" aria-pressed="true">Límites</button>
+    <button id="t-regions" type="button" aria-pressed="false">Regiones</button>
     <button id="t-spin" type="button" aria-pressed="false">Girar</button>
     <button id="t-reset" type="button">Vista inicial</button>
     <label class="exag" for="t-exag">Relieve <input id="t-exag" type="range" min="1" max="8" step="0.5" value="4"><output id="t-exag-v" for="t-exag">×4</output></label>
     <span id="coord" aria-live="off"></span>
   </div>
+  <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
   <div id="credit">Límites: U.S. Census Bureau 1:500k · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
   <div id="tip" hidden></div>
 </div>
@@ -278,12 +289,24 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     idCtx.fill('evenodd'); });
   const idPx = idCtx.getImageData(0, 0, IW, IH).data;
   const idTex = new THREE.CanvasTexture(idC); idTex.minFilter = idTex.magFilter = THREE.NearestFilter; idTex.generateMipmaps = false;
-  const uni = { idMap: { value: idTex }, selId: { value: -1 }, hovId: { value: -1 }, accent: { value: new THREE.Color() } };
+  // Regiones (según el mapa de referencia): color por municipio en una textura de 256×1
+  const REGIONS = [['Noroeste', '#ee9b9b'], ['Oeste', '#bba9ef'], ['Montaña', '#a6eab0'], ['Norte central', '#8fd2f5'], ['Sur', '#f5bb7f'], ['Este', '#f3ee9e']];
+  const regColor = new Map(REGIONS);
+  const regData = new Uint8Array(256 * 4);
+  DATA.forEach((m, i) => { const [r, g, b] = hexRGB(regColor.get(m.region) || '#ffffff'); regData.set([r, g, b, 255], i * 4); });
+  const regTex = new THREE.DataTexture(regData, 256, 1, THREE.RGBAFormat); regTex.encoding = THREE.sRGBEncoding;
+  regTex.minFilter = regTex.magFilter = THREE.NearestFilter; regTex.needsUpdate = true;
+  const uni = { idMap: { value: idTex }, regMap: { value: regTex }, regionOn: { value: 0 }, selId: { value: -1 }, hovId: { value: -1 }, accent: { value: new THREE.Color() } };
   const terrainMat = new THREE.MeshStandardMaterial({ map: relTex, roughness: 0.95, metalness: 0, alphaTest: 0.5 });
   terrainMat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, uni);
-    sh.fragmentShader = 'uniform sampler2D idMap; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+    sh.fragmentShader = 'uniform sampler2D idMap; uniform sampler2D regMap; uniform float regionOn; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
       float mid = floor(texture2D(idMap, vUv).r * 255.0 + 0.5) - 1.0;
+      if (regionOn > 0.5 && mid >= 0.0) {
+        vec3 rc = texture2D(regMap, vec2((mid + 0.5) / 256.0, 0.5)).rgb;
+        float l = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+        diffuseColor.rgb = mix(diffuseColor.rgb, rc * (0.55 + 2.2 * l), 0.72);
+      }
       if (abs(mid - selId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, accent, 0.5);
       else if (abs(mid - hovId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), 0.3);`);
   };
@@ -354,9 +377,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     DATA.forEach((m, i) => { m.maxAlt = m.island ? null : Math.round(best[i] * 100) * 10; }); }
 
   // ---------- Tema ----------
-  let selected = -1, hovered = -1;
+  let selected = -1, hovered = -1, regionsOn = false;
+  const regionMats = new Map(REGIONS.map(([n, c]) => [n, new THREE.MeshStandardMaterial({ roughness: 0.9, color: new THREE.Color(c) })]));
   function paintIslands() {
-    islandMeshes.forEach(ms => { ms.material[0] = ms.userData.idx === selected ? islandSelMat : ms.userData.idx === hovered ? islandHovMat : islandTop; });
+    islandMeshes.forEach(ms => { const i = ms.userData.idx;
+      ms.material[0] = i === selected ? islandSelMat : i === hovered ? islandHovMat : regionsOn ? regionMats.get(DATA[i].region) : islandTop; });
   }
   function applyTheme() {
     const fog = new THREE.Color(css('--fog'));
@@ -438,6 +463,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (i < 0) { info.hidden = true; dispatch(null); return; }
     const m = DATA[i];
     $('i-code').textContent = m.id; $('i-name').textContent = m.name;
+    $('i-reg').textContent = 'Región ' + m.region; $('i-regsw').style.background = regColor.get(m.region);
     $('i-area').innerHTML = `${fmt.format(m.areaKm2)} km² <small>· ${fmt.format(m.areaKm2 / 2.58999)} mi²</small>`;
     $('i-water').textContent = `${fmt.format(m.aguaKm2)} km²`;
     $('i-alt').textContent = m.maxAlt == null ? 'Sin dato (isla)' : `${fmt0.format(m.maxAlt)} m`;
@@ -558,6 +584,25 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   toggle('t-labels', on => { showLabels = on; });
   toggle('t-borders', on => { borderMain.visible = borderIsl.visible = on; });
   toggle('t-spin', on => { controls.autoRotate = on; });
+  const legend = $('legend');
+  REGIONS.forEach(([n, c]) => {
+    const b = document.createElement('button'); b.type = 'button';
+    const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = c;
+    const cnt = document.createElement('span'); cnt.className = 'n'; cnt.textContent = DATA.filter(m => m.region === n).length;
+    b.append(sw, n, cnt);
+    b.addEventListener('click', () => flyToRegion(n));
+    legend.append(b);
+  });
+  function flyToRegion(n) {
+    let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+    muni.forEach(o => { if (o.m.region !== n || o.isl) return; x0 = Math.min(x0, o.lx); x1 = Math.max(x1, o.lx); y0 = Math.min(y0, o.ly); y1 = Math.max(y1, o.ly); });
+    if (x0 > x1) return;
+    select(-1, { fly: false });
+    const c = new THREE.Vector3((x0 + x1) / 2, 0, -(y0 + y1) / 2), span = Math.max(x1 - x0, (y1 - y0) * 1.6, 25);
+    const d = span * 1.35 * Math.max(1, 0.85 * size.h / size.w);
+    flyTo(c, c.clone().add(new THREE.Vector3(0, 0.74, 0.67).normalize().multiplyScalar(d)));
+  }
+  toggle('t-regions', on => { regionsOn = on; uni.regionOn.value = on ? 1 : 0; legend.hidden = !on; paintIslands(); });
   $('t-reset').addEventListener('click', () => { select(-1, { fly: false }); const v = homeView(); flyTo(v.target, v.pos); });
   $('t-exag').addEventListener('input', e => setExag(+e.target.value));
 
@@ -594,6 +639,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     select(key) { const i = typeof key === 'number' ? key : DATA.findIndex(m => m.id === key || norm(m.name) === norm(String(key))); if (i >= 0) select(i); return i; },
     clear() { select(-1); },
     reset() { $('t-reset').click(); },
+    regions: REGIONS.map(([name, color]) => ({ name, color, municipios: DATA.filter(m => m.region === name).map(m => m.name) })),
+    showRegions(on = true) { if ((($('t-regions').getAttribute('aria-pressed') === 'true')) !== on) $('t-regions').click(); },
     heightAt(lon, lat) { return Math.round(hAt(...proj(lon, lat)) * 1000); },
   };
 })();
