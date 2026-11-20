@@ -60,8 +60,10 @@
   // ---------- Auto-actualización ----------
   if (!('serviceWorker' in navigator)) return;
   let reloading = false;
+  // Solo se recarga si ya había una versión controlando la página (en la primera visita no hace falta)
+  const hadController = !!navigator.serviceWorker.controller;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (reloading) return; reloading = true;
+    if (reloading || !hadController) return; reloading = true;
     toast('Actualizando…', { ms: 0 });
     setTimeout(() => location.reload(), 350);
   });

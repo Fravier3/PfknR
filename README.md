@@ -29,6 +29,10 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - **Compartir**: el lugar abierto queda en la dirección (`#m=72035&b=…&t=s&n=Mogote`); el botón de compartir manda ese enlace. Al refrescar, la app vuelve al mismo lugar.
 - **Favoritos** (estrella en la ficha), guardados en el teléfono y mostrados arriba en el buscador.
 - **Actualizar**: busca una versión nueva, la instala y recarga sin perder el lugar abierto.
+- **Seguir mi ubicación**: tras "Ubicarme", el punto azul te sigue; la cámara te acompaña (salvo si acabas de mover el mapa), la pantalla no se apaga y la ficha cambia sola de pueblo y barrio. "Detener" lo apaga.
+- **Medir**: toca puntos en el mapa; muestra la distancia total y cuánto se sube y se baja por el relieve.
+- **Población del Censo 2020** (P.L. 94-171): personas, densidad y viviendas de cada pueblo; personas de cada barrio, subbarrio y comunidad.
+- **Islas con relieve**: Vieques, Culebra y Mona en 3D con alturas reales (`data/islas/`, `scripts/islas.py`).
 - **Relieve exacto**: alturas en metros del USGS 3DEP (mosaicos Terrarium de AWS); altura máxima real de cada municipio y barrio.
 
 ## Archivos
@@ -81,6 +85,8 @@ Municipios, barrios y comunidades salen de la misma fuente (TIGER 2014). Los bar
 4. `python3 scripts/relieve.py <dem.webp> data`: textura de relieve. Luego `python3 scripts/alturas.py data <caché>`: alturas reales y `altMax`.
 5. `python3 scripts/subbarrios.py tl_2023_72_subbarrio.shp data <carpeta GeoJSON 500k>`: subbarrios (TIGER 2023, www2.census.gov). Requiere pyshp.
 7. `python3 scripts/indice.py data`: índice del buscador.
+8. `python3 scripts/islas.py data <caché>`: relieve de Vieques, Culebra y Mona.
+9. `python3 scripts/poblacion.py prgeo2020.pl data`: población y viviendas del Censo 2020 (archivo `pr2020.pl.zip` de www2.census.gov).
 6. `python3 scripts/sectores.py <PR .pmtiles> data`: sectores de OpenStreetMap desde el PMTiles de `Perk4/puerto-rico-map` (extracto de BBBike). Requiere pmtiles y mapbox-vector-tile.
 
 ## Fuentes
