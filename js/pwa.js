@@ -78,6 +78,15 @@
     } catch (err) { /* sin conexión: se intentará más tarde */ }
   }
 
+  // Usado por el botón "Actualizar": si hay versión nueva, la instala (la recarga la hace controllerchange)
+  window.PRUpdate = async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (!reg) return;
+    await reg.update().catch(() => {});
+    await checkVersion(reg);
+    if (reg.waiting) { reg.waiting.postMessage('SKIP_WAITING'); await new Promise(r => setTimeout(r, 1500)); }
+  };
+
   addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });

@@ -22,6 +22,15 @@ Niveles de zoom: isla → municipio (ficha y barrios pintados) → barrio (subba
 
 Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en iPhone (Safari → Compartir → Añadir a pantalla de inicio) y en Android (Chrome → Instalar app). Funciona sin conexión después de la primera visita y se actualiza sola al publicar cambios.
 
+## Funciones
+
+- **Buscador** de pueblos, barrios, subbarrios, comunidades y sectores (índice `data/buscar.json`); te lleva directo al lugar.
+- **Ubicarme**: usa el GPS para decirte en qué pueblo, barrio y cerca de qué sector estás, con un punto azul en el mapa.
+- **Compartir**: el lugar abierto queda en la dirección (`#m=72035&b=…&t=s&n=Mogote`); el botón de compartir manda ese enlace. Al refrescar, la app vuelve al mismo lugar.
+- **Favoritos** (estrella en la ficha), guardados en el teléfono y mostrados arriba en el buscador.
+- **Actualizar**: busca una versión nueva, la instala y recarga sin perder el lugar abierto.
+- **Relieve exacto**: alturas en metros del USGS 3DEP (mosaicos Terrarium de AWS); altura máxima real de cada municipio y barrio.
+
 ## Archivos
 
 - `src/app.html`: código fuente de la app (también se publica como Artifact de claude.ai; usa librerías por CDN).
@@ -69,8 +78,9 @@ Municipios, barrios y comunidades salen de la misma fuente (TIGER 2014). Los bar
 1. `node scripts/municipios.js <carpeta GeoJSON 500k> data/municipios.json`: lista base (nombres, áreas) desde `hyperknot/country-levels-export`.
 2. `node scripts/regiones.js data/municipios.json`: asigna las 6 regiones del mapa de referencia.
 3. `python3 scripts/geo.py <TIGER2014> data <carpeta GeoJSON 500k>`: geometría de municipios, barrios y comunidades (requiere shapely ≥ 2.1). Usa `cousub/PR`, `place/PR` de `boundaryissues/TIGER2014`.
-4. `python3 scripts/relieve.py <dem.webp> data`: textura y alturas.
+4. `python3 scripts/relieve.py <dem.webp> data`: textura de relieve. Luego `python3 scripts/alturas.py data <caché>`: alturas reales y `altMax`.
 5. `python3 scripts/subbarrios.py tl_2023_72_subbarrio.shp data <carpeta GeoJSON 500k>`: subbarrios (TIGER 2023, www2.census.gov). Requiere pyshp.
+7. `python3 scripts/indice.py data`: índice del buscador.
 6. `python3 scripts/sectores.py <PR .pmtiles> data`: sectores de OpenStreetMap desde el PMTiles de `Perk4/puerto-rico-map` (extracto de BBBike). Requiere pmtiles y mapbox-vector-tile.
 
 ## Fuentes
@@ -78,7 +88,7 @@ Municipios, barrios y comunidades salen de la misma fuente (TIGER 2014). Los bar
 - Límites: U.S. Census Bureau, TIGER 2014 y 2023 (dominio público) y límites cartográficos 1:500k.
 - Sectores: © colaboradores de OpenStreetMap (licencia ODbL). Si la app se publica, debe mostrar ese crédito.
 - Relieve: imagen `dem.webp` del repositorio público `izette1/SWCI`, hecha con un DEM de 30 m del USGS. Ese repositorio no declara licencia; para una app pública conviene regenerarla desde el DEM del USGS (dominio público).
-- Las alturas se estiman por el color de esa imagen, calibradas con Cerro de Punta (1,338 m): la forma es real, los metros son aproximados.
+- Alturas: USGS 3DEP vía mosaicos Terrarium de AWS (`scripts/alturas.py`), en metros reales; la textura de relieve sigue siendo la imagen de izette1/SWCI.
 
 ## API para la app
 

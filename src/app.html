@@ -142,6 +142,24 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #info, #legend, #list { transition: opacity .25s ease, translate .6s var(--spring); }
   @starting-style { #info, #legend { opacity: 0; translate: 0 18px; } #list { opacity: 0; translate: 0 -6px; } }
 }
+/* Botones de icono de la ficha, herramientas con icono, aviso, marcador de ubicación y buscador ampliado */
+.ib { display: inline-grid; place-items: center; width: 34px; height: 34px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--muted); cursor: pointer; }
+.ib:hover { color: var(--accent); border-color: var(--accent); }
+#fav[aria-pressed="true"] { color: #e8a317; border-color: #e8a317; }
+#fav[aria-pressed="false"] svg path { fill: none; }
+#tools .ic { display: inline-flex; align-items: center; gap: 5px; }
+#note { left: 50%; top: calc(110px + env(safe-area-inset-top, 0px)); translate: -50% 0; z-index: 6; padding: 10px 14px; font: 500 13.5px var(--f-body); max-width: min(92vw, 460px); text-align: center; }
+@media (prefers-reduced-motion: no-preference) { #note { transition: opacity .25s, translate .5s var(--spring); } @starting-style { #note { opacity: 0; translate: -50% -10px; } } }
+.lbl.me { color: #0b4f9c; font-weight: 800; text-shadow: 0 0 2px #fff, 0 0 3px #fff, 0 0 6px #fff; }
+.lbl.me::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 5px; vertical-align: -1px; border-radius: 50%; background: #1a73e8; border: 2.5px solid #fff; box-shadow: 0 0 0 0 rgba(26,115,232,.55); animation: me-pulse 1.8s infinite; }
+@keyframes me-pulse { 70% { box-shadow: 0 0 0 12px rgba(26,115,232,0); } 100% { box-shadow: 0 0 0 0 rgba(26,115,232,0); } }
+@media (prefers-reduced-motion: reduce) { .lbl.me::before { animation: none; } }
+#list .grp { padding: 8px 9px 3px; font: 500 10.5px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .07em; cursor: default; }
+#list .grp:hover { background: none; }
+#list .kind { font: 500 10px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .05em; text-align: right; }
+#list .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#list .nm small { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; }
+#list .star { color: #e8a317; margin-right: 4px; }
 #hint { left: 50%; bottom: 76px; transform: translateX(-50%); padding: 8px 14px; z-index: 2; font: 500 12.5px var(--f-body); white-space: nowrap; transition: opacity .4s; }
 #hint.out { opacity: 0; pointer-events: none; }
 #more, .sum { display: none; }
@@ -181,21 +199,21 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 
   <header id="finder" class="panel">
     <div class="brand"><h1>Puerto Rico</h1><span class="eyebrow">78 municipios</span></div>
-    <label for="q" class="sr">Buscar municipio</label>
-    <input id="q" type="search" placeholder="Buscar municipio…" autocomplete="off" spellcheck="false">
+    <label for="q" class="sr">Buscar pueblo, barrio, comunidad o sector</label>
+    <input id="q" type="search" placeholder="Buscar pueblo, barrio o sector…" autocomplete="off" spellcheck="false" enterkeyhint="search">
     <ul id="list" role="listbox" aria-label="Municipios" hidden></ul>
   </header>
 
   <section id="info" class="panel" hidden aria-live="polite">
     <div class="head">
       <div><span class="eyebrow">Municipio · FIPS <span id="i-code"></span></span><h2 id="i-name"></h2><div class="reg"><span class="sw" id="i-regsw"></span><span id="i-reg"></span></div></div>
-      <div class="hbtns"><button id="more" type="button" aria-expanded="false">Detalles</button><button id="close" type="button" aria-label="Cerrar ficha">✕</button></div>
+      <div class="hbtns"><button id="fav" class="ib" type="button" aria-pressed="false" aria-label="Guardar en favoritos"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button><button id="share" class="ib" type="button" aria-label="Compartir enlace"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v6.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V12"/></svg></button><button id="more" type="button" aria-expanded="false">Detalles</button><button id="close" type="button" aria-label="Cerrar ficha">✕</button></div>
     </div>
     <p class="sum" id="i-sum"></p>
     <dl class="stats">
       <div><dt>Área terrestre</dt><dd id="i-area"></dd></div>
       <div><dt>Área de agua</dt><dd id="i-water"></dd></div>
-      <div><dt>Altura máx. aprox.</dt><dd id="i-alt"></dd></div>
+      <div><dt>Altura máxima</dt><dd id="i-alt"></dd></div>
       <div><dt>Centro aprox.</dt><dd id="i-pos"></dd></div>
     </dl>
     <div class="nb-title">Colinda con</div>
@@ -223,12 +241,15 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <button id="t-regions" type="button" aria-pressed="false">Regiones</button>
     <button id="t-spin" type="button" aria-pressed="false" hidden>Girar</button>
     <button id="t-reset" type="button">Vista inicial</button>
+    <button id="t-gps" type="button" class="ic"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Ubicarme</button>
+    <button id="t-refresh" type="button" class="ic" aria-label="Actualizar la app"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Actualizar</button>
     <label class="exag" id="t-exag-wrap" for="t-exag" hidden>Relieve <input id="t-exag" type="range" min="1" max="8" step="0.5" value="4"><output id="t-exag-v" for="t-exag">×4</output></label>
     <span id="coord" aria-live="off"></span>
   </div>
   <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
   <div id="credit">Límites: U.S. Census Bureau · Sectores: © OpenStreetMap · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
   <div id="tip" hidden></div>
+  <div id="note" class="panel" role="status" hidden></div>
   <div id="hint" class="panel" aria-live="polite" hidden></div>
 </div>
 
@@ -279,7 +300,6 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const RB = { s: 17.878902552457824, w: -67.27256312630682, n: 18.517352656991857, e: -65.52654467314429 };
   const [TX0, TY0] = proj(RB.w, RB.s), [TX1, TY1] = proj(RB.e, RB.n);
   const TW = TX1 - TX0, TH = TY1 - TY0;
-  const MAX_M = 1340;  // metros que representa el blanco del mapa de alturas
 
   // Mapa de alturas (km)
   const hmW = hmImg.width, hmH = hmImg.height;
@@ -287,7 +307,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const hctx = hc.getContext('2d', { willReadFrequently: true }); hctx.drawImage(hmImg, 0, 0);
   const hpx = hctx.getImageData(0, 0, hmW, hmH).data;
   const HM = new Float32Array(hmW * hmH);
-  for (let i = 0; i < HM.length; i++) HM[i] = hpx[i * 4] / 255 * MAX_M / 1000;
+  // alturas.png: metros = rojo*256 + verde (USGS 3DEP vía mosaicos de AWS); aquí en km
+  for (let i = 0; i < HM.length; i++) HM[i] = (hpx[i * 4] * 256 + hpx[i * 4 + 1]) / 1000;
   // Máscara de tierra (canal alfa de la textura)
   const MW = 1024, MH = Math.round(1024 * texImg.height / texImg.width);
   const mc = document.createElement('canvas'); mc.width = MW; mc.height = MH;
@@ -573,7 +594,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       const id = idOf(idPx[((j / hmH * IH | 0) * IW + (i / hmW * IW | 0)) * 4]);
       if (id >= 0 && h > best[id]) best[id] = h;
     }
-    DATA.forEach((m, i) => { m.maxAlt = m.island ? null : Math.round(best[i] * 100) * 10; }); }
+    DATA.forEach((m, i) => { m.maxAlt = m.altMax ?? (m.island ? null : Math.round(best[i] * 1000)); }); }
 
   // ---------- Tema ----------
   let selected = -1, hovered = -1, regionsOn = false;
@@ -620,6 +641,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
   function placeLabels(w, h) {
     const on = showLabels && labelsReady, taken = [];
+    if (ME) placeOne(ME, (ME.isl ? ISL_H : ME.lh * EX) + 0.2, labelsReady, taken, w, h);
     for (const o of ZM.secLabels.slice().sort((a, b) => (b.j === ZM.secSel) - (a.j === ZM.secSel))) { placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.12, on, taken, w, h); o.el.classList.toggle('on', o.j === ZM.secSel); }
     for (const o of ZM.subLabels) placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.14, on, taken, w, h);
     if (COM.label) placeOne(COM.label, (COM.label.isl ? ISL_H : COM.label.lh * EX) + 0.2, on, taken, w, h);
@@ -757,6 +779,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const c = COM.list[k]; if (!c) return;
     dropLines(COM.lines); if (COM.label) COM.label.el.remove();
     COM.sel = k; [...$('coms').children].forEach((el, j) => el.classList.toggle('on', j === k));
+    LINKX = { t: 'c', name: c.name }; syncHash();
     const bl = buildLines(c.polys, 0.02);
     for (const [arr, parent] of [[bl.main, exGroup], [bl.isl, scene]]) if (arr.length) { const l = mkLines(arr, comLineMat, 5); l.computeLineDistances(); parent.add(l); COM.lines.push(l); }
     const el = document.createElement('div'); el.className = 'lbl com'; el.textContent = c.name; labelsEl.appendChild(el);
@@ -825,22 +848,22 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     });
     $('bars-title').textContent = `Barrios (${list.length})`; $('bars-title').hidden = false;
     staggerIn([...bars.children]);
-    showComunidades(i, req);
     if (!$('i-sum').textContent.includes('barrios')) $('i-sum').textContent += ` · ${list.length} barrios`;
+    await showComunidades(i, req);
   }
   function setHoverBar(k) { if (k === BAR.hov) return; BAR.hov = k; uni.hovBar.value = k; }
   function selectBarrio(k, { fly = false } = {}) {
     if (!BAR.list[k]) return;
     BAR.sel = k; uni.selBar.value = k;
     const b = BAR.list[k];
-    $('bar-name').textContent = 'Barrio ' + barName(b); $('bar-area').textContent = `${fmt.format(b.areaKm2)} km²`; $('zoom').hidden = false;
+    $('bar-name').textContent = 'Barrio ' + barName(b); $('bar-area').textContent = `${fmt.format(b.areaKm2)} km²` + (b.altMax != null ? ` · ${fmt0.format(b.altMax)} m` : ''); $('zoom').hidden = false;
     [...$('bars').children].forEach((el, j) => el.classList.toggle('on', j === k));
     dropLines(barSelLines);
     const bl = buildLines(b.polys, 0.014);
     if (bl.main.length) { const l = mkLines(bl.main, barLineSelMat, 4); exGroup.add(l); barSelLines.push(l); }
     if (bl.isl.length) { const l = mkLines(bl.isl, barLineSelMat, 4); scene.add(l); barSelLines.push(l); }
     if (fly) { setCompact(true); flyToBox(polysBox(b.polys), 4); }
-    showZoom(k);
+    ZM.ready = showZoom(k); LINKX = null; syncHash(); updateFav();
     window.dispatchEvent(new CustomEvent('barrio:select', { detail: { municipio: DATA[selected].name, id: b.id, name: b.name, pueblo: b.pueblo } }));
   }
 
@@ -903,12 +926,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     dropLines(ZM.selLines);
     const bl = buildLines(sb.polys, 0.02);
     for (const [arr, parent] of [[bl.main, exGroup], [bl.isl, scene]]) if (arr.length) { const l = mkLines(arr, barLineSelMat, 5); parent.add(l); ZM.selLines.push(l); }
+    LINKX = { t: 'u', name: sb.name }; syncHash();
     $('bar-name').textContent = `${sb.name} · ${barName(BAR.list[BAR.sel])}`; $('bar-area').textContent = `${fmt.format(sb.areaKm2)} km²`;
     if (fly) { setCompact(true); flyToBox(polysBox(sb.polys), 2); }
   }
   function selectSec(j) {
     const sc = ZM.secs[j]; if (!sc) return;
     ZM.secSel = j; [...$('secs').children].forEach((el, i) => el.classList.toggle('on', i === j));
+    LINKX = { t: 's', name: sc.name }; syncHash();
     const [x, y] = proj(sc.lon, sc.lat); setCompact(true);
     flyToBox({ x0: x - 1.2, x1: x + 1.2, y0: y - 1.2, y1: y + 1.2 }, 3);
   }
@@ -935,13 +960,13 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     selected = i; uni.selId.value = i; paintIslands(); setSelLines(i);
     app.classList.toggle('has-sel', i >= 0);
     renderList();
-    if (i < 0) { info.hidden = true; BAR.req++; clearBarrios(); dispatch(null); return; }
+    if (i < 0) { info.hidden = true; BAR.req++; clearBarrios(); BAR.ready = Promise.resolve(); LINKX = null; syncHash(); dispatch(null); return; }
     const m = DATA[i];
     $('i-code').textContent = m.id; $('i-name').textContent = m.name;
     $('i-reg').textContent = 'Región ' + m.region; $('i-regsw').style.background = regColor.get(m.region);
     countTo($('i-area'), m.areaKm2, v => `${fmt.format(v)} km² <small>· ${fmt.format(v / 2.58999)} mi²</small>`);
     $('i-water').textContent = `${fmt.format(m.aguaKm2)} km²`;
-    if (m.maxAlt == null) $('i-alt').textContent = 'Sin dato (isla)'; else countTo($('i-alt'), m.maxAlt, v => `${fmt0.format(Math.round(v / 10) * 10)} m`);
+    if (m.maxAlt == null) $('i-alt').textContent = 'Sin dato'; else countTo($('i-alt'), m.maxAlt, v => `${fmt0.format(Math.round(v))} m`);
     $('i-pos').textContent = fmtLL(m.label);
     const nbs = $('nbs'); nbs.textContent = '';
     if (!m.nb.length) { const s = document.createElement('span'); s.className = 'none'; s.textContent = 'Isla municipio, sin colindancias terrestres.'; nbs.append(s); }
@@ -955,7 +980,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     setCompact(true);
     info.hidden = false; info.scrollTop = 0;
     staggerIn([...$('nbs').children]);
-    showBarrios(i);
+    BAR.ready = showBarrios(i);
+    LINKX = null; syncHash(); updateFav();
     if (fly) flyToMuni(i);
     dispatch(m);
   }
@@ -1033,29 +1059,61 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   // ---------- Buscador ----------
   const q = $('q'), listEl = $('list');
   const norm = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  // Índice de barrios, subbarrios, comunidades y sectores (data/buscar.json); se carga al primer uso
+  const KIND = { m: 'Pueblo', b: 'Barrio', u: 'Subbarrio', c: 'Comunidad', s: 'Sector' };
+  let IDX = null, idxLoading = null;
+  function loadIndex() {
+    if (IDX || idxLoading) return idxLoading;
+    idxLoading = fetch('data/buscar.json').then(r => r.ok ? r.json() : []).catch(() => []).then(a => {
+      IDX = a.map(e => ({ name: e[0], t: e[1], m: e[2], b: e[3], lon: e[4], lat: e[5], key: norm(e[0]) })); renderList();
+    });
+    return idxLoading;
+  }
   let matches = [], active = 0;
   function renderList() {
     const s = norm(q.value.trim()), open = document.activeElement === q || s.length > 0;
-    matches = DATA.map((m, i) => i).filter(i => !s || norm(DATA[i].name).includes(s));
+    matches = [];
+    if (!s) {
+      FAVS.forEach(f => matches.push({ kind: 'f', f }));
+      DATA.forEach((m, i) => matches.push({ kind: 'm', i }));
+    } else {
+      DATA.forEach((m, i) => { if (norm(m.name).includes(s)) matches.push({ kind: 'm', i, start: norm(m.name).startsWith(s) }); });
+      matches.sort((a, b) => b.start - a.start);
+      if (s.length >= 2 && IDX) {
+        const hits = IDX.filter(e => e.key.includes(s)).sort((a, b) => b.key.startsWith(s) - a.key.startsWith(s) || 'bucs'.indexOf(a.t) - 'bucs'.indexOf(b.t)).slice(0, 40);
+        hits.forEach(e => matches.push({ kind: 'e', e }));
+      }
+    }
     listEl.hidden = !open; if (!open) return;
     active = Math.min(active, Math.max(0, matches.length - 1));
     listEl.textContent = '';
-    if (!matches.length) { const li = document.createElement('li'); li.textContent = 'Ningún municipio coincide'; li.style.cursor = 'default'; listEl.append(li); return; }
-    matches.forEach((i, k) => {
+    if (!matches.length) { const li = document.createElement('li'); li.textContent = s.length < 2 || IDX ? 'Nada coincide con la búsqueda' : 'Buscando…'; li.style.cursor = 'default'; listEl.append(li); return; }
+    let lastGroup = null;
+    matches.forEach((it, k) => {
+      const group = it.kind === 'f' ? 'Favoritos' : it.kind === 'm' ? (s ? 'Pueblos' : 'Los 78 pueblos') : 'Barrios, comunidades y sectores';
+      if (group !== lastGroup) { const g = document.createElement('li'); g.className = 'grp'; g.textContent = group; g.setAttribute('aria-hidden', 'true'); listEl.append(g); lastGroup = group; }
       const li = document.createElement('li'); li.setAttribute('role', 'option');
       if (k === active && s) li.classList.add('active');
-      if (i === selected) li.classList.add('cur');
-      const n = document.createElement('span'); n.textContent = DATA[i].name;
-      const c = document.createElement('span'); c.className = 'code'; c.textContent = DATA[i].id;
-      li.append(n, c);
-      li.addEventListener('mousedown', ev => { ev.preventDefault(); choose(i); });
-      li.addEventListener('mouseenter', () => setHover(i)); li.addEventListener('mouseleave', () => setHover(-1));
+      const nm = document.createElement('span'); nm.className = 'nm';
+      const kd = document.createElement('span'); kd.className = 'kind';
+      if (it.kind === 'm') { nm.textContent = DATA[it.i].name; kd.textContent = DATA[it.i].id; if (it.i === selected) li.classList.add('cur'); }
+      else if (it.kind === 'f') { const st = document.createElement('span'); st.className = 'star'; st.textContent = '★'; nm.append(st, it.f.name); if (it.f.t === 'b') { const sm = document.createElement('small'); sm.textContent = DATA[byId.get(it.f.m)]?.name || ''; nm.append(sm); } kd.textContent = KIND[it.f.t]; }
+      else { nm.textContent = it.e.name; const sm = document.createElement('small'); sm.textContent = DATA[byId.get(it.e.m)]?.name || ''; nm.append(sm); kd.textContent = KIND[it.e.t]; }
+      li.append(nm, kd);
+      li.addEventListener('mousedown', ev => { ev.preventDefault(); choose(it); });
+      if (it.kind === 'm') { li.addEventListener('mouseenter', () => setHover(it.i)); li.addEventListener('mouseleave', () => setHover(-1)); }
       listEl.append(li);
     });
   }
-  function choose(i) { select(i); q.value = ''; q.blur(); renderList(); }
+  function choose(it) {
+    q.value = ''; q.blur(); renderList();
+    if (typeof it === 'number') return select(it);
+    if (it.kind === 'm') return select(it.i);
+    if (it.kind === 'f') return goTo({ m: it.f.m, b: it.f.b || '' });
+    goTo({ m: it.e.m, b: it.e.b, t: it.e.t, name: it.e.name });
+  }
   q.addEventListener('input', () => { active = 0; renderList(); });
-  q.addEventListener('focus', renderList);
+  q.addEventListener('focus', () => { loadIndex(); renderList(); });
   q.addEventListener('blur', () => setTimeout(renderList, 0));
   q.addEventListener('keydown', e => {
     if (e.key === 'ArrowDown') { active = Math.min(active + 1, matches.length - 1); renderList(); e.preventDefault(); listEl.querySelector('.active')?.scrollIntoView({ block: 'nearest' }); }
@@ -1067,6 +1125,120 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   function setCompact(on) { info.classList.toggle('compact', on); $('more').setAttribute('aria-expanded', !on); $('more').textContent = on ? 'Detalles' : 'Menos'; }
   $('more').addEventListener('click', () => setCompact(!info.classList.contains('compact')));
   addEventListener('keydown', e => { if (e.key === 'Escape' && document.activeElement !== q && selected >= 0) select(-1); });
+
+  // ---------- Ir a un lugar (búsqueda, favoritos, enlaces): municipio → barrio → subbarrio/sector/comunidad ----------
+  let LINKX = null, restoring = false;
+  async function goTo({ m, b = '', t = '', name = '' }) {
+    const i = byId.get(m); if (i == null) return;
+    if (selected !== i) select(i); else if (!b) flyToMuni(i);
+    await BAR.ready;
+    if (selected !== i) return;
+    if (t === 'c') { const k = COM.list.findIndex(c => c.name === name); if (k >= 0) selectComunidad(k); return; }
+    if (!b) return;
+    const k = BAR.list.findIndex(x => x.id === b); if (k < 0) return;
+    if (BAR.sel !== k || !t || t === 'b') selectBarrio(k, { fly: true });
+    if (t === 'u' || t === 's') {
+      await ZM.ready;
+      if (t === 'u') { const j = ZM.subs.findIndex(x => x.name === name); if (j >= 0) selectSub(j, true); }
+      else { const j = ZM.secs.findIndex(x => x.name === name); if (j >= 0) selectSec(j); }
+    }
+  }
+  // El lugar abierto se guarda en la dirección (#m=…&b=…): sirve para compartir y para refrescar sin perderlo
+  function currentLink() {
+    if (selected < 0) return '';
+    const p = new URLSearchParams({ m: DATA[selected].id });
+    if (BAR.sel >= 0 && BAR.list[BAR.sel]) p.set('b', BAR.list[BAR.sel].id);
+    if (LINKX) { p.set('t', LINKX.t); p.set('n', LINKX.name); }
+    return p.toString();
+  }
+  function syncHash() {
+    if (restoring) return;
+    const h = currentLink();
+    try { history.replaceState(null, '', h ? '#' + h : location.pathname + location.search); } catch (e) { /* sin historial (vista embebida) */ }
+  }
+  function linkFromHash() {
+    const p = new URLSearchParams(location.hash.slice(1));
+    return p.get('m') ? { m: p.get('m'), b: p.get('b') || '', t: p.get('t') || (p.get('b') ? 'b' : ''), name: p.get('n') || '' } : null;
+  }
+  addEventListener('hashchange', () => { const l = linkFromHash(); if (l && currentLink() !== location.hash.slice(1)) goTo(l); });
+
+  // Avisos breves
+  let noteTimer = 0;
+  function note(text, ms = 3500) { const n = $('note'); n.textContent = text; n.hidden = false; clearTimeout(noteTimer); noteTimer = setTimeout(() => { n.hidden = true; }, ms); }
+
+  // Favoritos (en este teléfono)
+  const FAV_KEY = 'pr3d-favoritos';
+  let FAVS = [];
+  try { FAVS = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); } catch (e) { FAVS = []; }
+  const saveFavs = () => { try { localStorage.setItem(FAV_KEY, JSON.stringify(FAVS)); } catch (e) { note('No se pudieron guardar los favoritos en este navegador.'); } };
+  function favTarget() {
+    if (selected < 0) return null;
+    const m = DATA[selected];
+    if (BAR.sel >= 0 && BAR.list[BAR.sel]) { const b = BAR.list[BAR.sel]; return { t: 'b', m: m.id, b: b.id, name: barName(b) }; }
+    return { t: 'm', m: m.id, name: m.name };
+  }
+  const favIndex = f => FAVS.findIndex(x => x.t === f.t && x.m === f.m && (x.b || '') === (f.b || ''));
+  function updateFav() {
+    const f = favTarget(), on = !!f && favIndex(f) >= 0, btn = $('fav');
+    btn.setAttribute('aria-pressed', on);
+    btn.setAttribute('aria-label', on ? `Quitar ${f.name} de favoritos` : `Guardar ${f ? f.name : ''} en favoritos`);
+  }
+  $('fav').addEventListener('click', () => {
+    const f = favTarget(); if (!f) return;
+    const k = favIndex(f);
+    if (k >= 0) { FAVS.splice(k, 1); note(`${f.name} ya no está en favoritos`); }
+    else { FAVS.unshift(f); note(`${f.name} guardado en favoritos. Lo verás al tocar el buscador.`); try { navigator.vibrate?.(12); } catch (e) {} }
+    saveFavs(); updateFav();
+  });
+
+  // Compartir el lugar abierto
+  $('share').addEventListener('click', async () => {
+    const url = location.origin + location.pathname + (currentLink() ? '#' + currentLink() : '');
+    const where = [LINKX?.name, BAR.sel >= 0 ? barName(BAR.list[BAR.sel]) : null, selected >= 0 ? DATA[selected].name : null].filter(Boolean).join(', ');
+    try {
+      if (navigator.share) { await navigator.share({ title: 'Puerto Rico 3D', text: where, url }); return; }
+      await navigator.clipboard.writeText(url); note('Enlace copiado');
+    } catch (e) { if (e && e.name !== 'AbortError') note(url, 8000); }
+  });
+
+  // ¿Dónde estoy? (GPS)
+  let ME = null;
+  function setMe(lon, lat) {
+    if (ME) ME.el.remove();
+    const el = document.createElement('div'); el.className = 'lbl me'; el.textContent = 'Tú'; labelsEl.appendChild(el);
+    const [lx, ly] = proj(lon, lat); ME = { el, w: 0, vis: null, lx, ly, lh: hAt(lx, ly), isl: !landAt(lon, lat) };
+  }
+  $('t-gps').addEventListener('click', () => {
+    if (!('geolocation' in navigator)) { note('Este navegador no permite usar la ubicación.'); return; }
+    const btn = $('t-gps'); btn.disabled = true; note('Buscando tu ubicación…', 15000);
+    navigator.geolocation.getCurrentPosition(async pos => {
+      btn.disabled = false;
+      const { longitude: lon, latitude: lat } = pos.coords;
+      const i = DATA.findIndex(m => m.polys.some(p => insidePoly([lon, lat], p)));
+      if (i < 0) { note('Estás fuera de Puerto Rico o en el mar: no hay municipio en tu ubicación.'); return; }
+      setMe(lon, lat);
+      if (selected !== i) select(i, { fly: false });
+      await BAR.ready;
+      const k = BAR.list.findIndex(b => b.polys.some(p => insidePoly([lon, lat], p)));
+      if (k >= 0) { selectBarrio(k); await ZM.ready; }
+      const [x, y] = proj(lon, lat);
+      let near = null, best = 1.5;   // sector más cercano a menos de 1.5 km
+      ZM.secs.forEach(sc => { const [sx, sy] = proj(sc.lon, sc.lat), d = Math.hypot(sx - x, sy - y); if (d < best) { best = d; near = sc; } });
+      setCompact(true);
+      flyToBox({ x0: x - 2.5, x1: x + 2.5, y0: y - 2.5, y1: y + 2.5 }, 4);
+      note(`Estás ${near ? `cerca de ${near.name}, ` : ''}${k >= 0 ? `en el barrio ${barName(BAR.list[k])}, ` : ''}${DATA[i].name}.`, 6000);
+    }, err => {
+      btn.disabled = false;
+      note(err.code === 1 ? 'Permite el acceso a la ubicación para usar “Ubicarme”.' : 'No se pudo obtener tu ubicación. Inténtalo de nuevo.');
+    }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  });
+
+  // Actualizar: busca una versión nueva (PWA) y recarga conservando el lugar abierto
+  $('t-refresh').addEventListener('click', async () => {
+    note('Buscando actualizaciones…');
+    try { if (window.PRUpdate) await window.PRUpdate(); } catch (e) { /* recarga normal */ }
+    location.reload();
+  });
 
   // ---------- Herramientas ----------
   const toggle = (id, fn) => { const b = $(id); b.addEventListener('click', () => { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); fn(on); }); };
@@ -1153,6 +1325,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   { const ld = $('loading'); ld.classList.add('out'); setTimeout(() => ld.remove(), 600); }
   requestAnimationFrame(frame);
   renderList();
+  { const l = linkFromHash(); if (l) { restoring = true; goTo(l).finally(() => { restoring = false; syncHash(); }); } }
 
   // API para la app: PRMap.select('Ponce'), PRMap.clear(), PRMap.reset(), PRMap.heightAt(lon, lat), PRMap.data
   window.PRMap = {
