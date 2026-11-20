@@ -4,7 +4,7 @@ Los toma de la capa `place_labels` de un PMTiles de Puerto Rico (repositorio pú
 Perk4/puerto-rico-map, extracto de BBBike; datos (c) colaboradores de OpenStreetMap, licencia ODbL)
 y asigna cada punto al barrio que lo contiene.
 
-Uso: python3 sectores.py <archivo .pmtiles> <carpeta mapa-3d/data>
+Uso: python3 sectores.py <archivo .pmtiles> <carpeta data>
 Requiere: pmtiles, mapbox-vector-tile, shapely
 """
 import sys, os, json, gzip, math

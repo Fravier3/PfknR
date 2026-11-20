@@ -3,7 +3,7 @@
 Solo existen en algunos barrios (sobre todo los barrios-pueblo; San Juan tiene 72). Cada subbarrio
 lleva el `id` del barrio al que pertenece. Se recortan con la costa igual que los barrios.
 
-Uso: python3 subbarrios.py <tl_2023_72_subbarrio.shp> <carpeta mapa-3d/data> <carpeta costa 500k>
+Uso: python3 subbarrios.py <tl_2023_72_subbarrio.shp> <carpeta data> <carpeta costa 500k>
 Requiere: pyshp, shapely >= 2.1
 Fuente: https://www2.census.gov/geo/tiger/TIGER2023/SUBBARRIO/tl_2023_72_subbarrio.zip
 """

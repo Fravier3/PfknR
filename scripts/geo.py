@@ -11,7 +11,7 @@ Los polígonos de TIGER incluyen el mar territorial, así que se recortan con la
 (municipios del Censo 1:500k, carpeta de GeoJSON de hyperknot/country-levels-export, con
 un margen de ~150 m que luego el relieve recorta exactamente).
 
-Uso: python3 geo.py <carpeta TIGER2014> <carpeta mapa-3d/data> <carpeta costa 500k>
+Uso: python3 geo.py <carpeta TIGER2014> <carpeta data> <carpeta costa 500k>
 Requiere: shapely >= 2.1
 """
 import json, os, sys

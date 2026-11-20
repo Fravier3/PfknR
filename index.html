@@ -2,12 +2,21 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="Mapa 3D de Puerto Rico con relieve, 78 municipios, barrios, subbarrios, comunidades y sectores.">
+<meta name="theme-color" content="#0b3a52">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PR 3D">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" href="favicon.png" sizes="32x32">
+<link rel="icon" href="icons/icon-192.png" sizes="192x192">
+<link rel="preload" href="data/municipios.json" as="fetch" crossorigin>
 <title>Puerto Rico 3D</title>
-<meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="css/fonts.css">
 <style>
 /* Layout: terreno a pantalla completa; buscador flotante arriba-izquierda, ficha a la derecha (hoja inferior en teléfono), herramientas abajo. */
 :root {
@@ -51,7 +60,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); ove
 .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .brand h1 { margin: 0; font: 700 20px/1.1 var(--f-display); letter-spacing: -.01em; }
 .eyebrow { font: 500 11px/1 var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
-#q { width: 100%; box-sizing: border-box; font: 500 14px var(--f-body); color: var(--ink); background: transparent;
+#q { width: 100%; box-sizing: border-box; font: 500 16px var(--f-body); color: var(--ink); background: transparent;
   border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; outline: none; }
 #q:focus-visible { border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
 #list { list-style: none; margin: 0; padding: 0; max-height: min(46vh, 380px); overflow-y: auto; display: grid; gap: 1px; }
@@ -120,6 +129,33 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
 #tip small { font: 400 11px var(--f-mono); opacity: .75; margin-left: 6px; }
 button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 #loading { position: absolute; inset: 0; display: grid; place-items: center; font: 500 13px var(--f-mono); color: #3d5a60; z-index: 5; }
+/* Pantalla de bienvenida */
+#loading { background: radial-gradient(120% 80% at 30% 20%, #1a7f93 0%, #0b3a52 60%, #072634 100%); color: #e6f4f4; transition: opacity .5s ease, visibility .5s; }
+#loading.out { opacity: 0; visibility: hidden; }
+.splash { display: grid; gap: 14px; justify-items: center; text-align: center; padding: 0 24px; }
+.splash img { width: 96px; height: 96px; border-radius: 22px; box-shadow: 0 18px 40px -12px rgba(0,0,0,.6); }
+.splash h1 { margin: 6px 0 0; font: 700 26px/1.1 var(--f-display); letter-spacing: -.01em; color: #fff; }
+.splash p { margin: 0; font: 500 12px var(--f-mono); letter-spacing: .08em; text-transform: uppercase; color: #a9d6d8; }
+.splash .bar { width: 180px; height: 4px; border-radius: 4px; background: rgba(255,255,255,.18); overflow: hidden; }
+.splash .bar i { display: block; height: 100%; width: var(--p, 8%); background: linear-gradient(90deg, #5fe0d6, #ffb36b); border-radius: inherit; transition: width .35s ease; }
+.splash .err { display: grid; gap: 10px; justify-items: center; max-width: 34ch; }
+.splash .err small { opacity: .7; font: 400 11px var(--f-mono); }
+.splash .err button { font: 600 14px var(--f-body); padding: 10px 18px; border-radius: 10px; border: 0; background: #fff; color: #0b3a52; cursor: pointer; min-height: 44px; }
+@media (prefers-reduced-motion: no-preference) {
+  .splash img { animation: splash-in .9s cubic-bezier(.2,.9,.3,1.2) both; }
+  .splash h1, .splash p, .splash .bar { animation: splash-up .7s .15s ease both; }
+}
+@keyframes splash-in { from { opacity: 0; transform: scale(.7) translateY(10px); } }
+@keyframes splash-up { from { opacity: 0; transform: translateY(8px); } }
+/* Entrada de paneles con resorte nativo (linear()); respaldo con ease-out */
+:root { --spring: cubic-bezier(.2, .9, .3, 1); }
+@supports (transition-timing-function: linear(0, 1)) {
+  :root { --spring: linear(0, 0.009, 0.035 2.1%, 0.141 4.4%, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077, 1.121, 1.149 24.3%, 1.159, 1.163 27%, 1.154, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%, 0.991, 0.977 51%, 0.975 57.1%, 0.993 69.3%, 1.001 81.3%, 1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  #info, #legend, #list { transition: opacity .25s ease, translate .6s var(--spring); }
+  @starting-style { #info, #legend { opacity: 0; translate: 0 18px; } #list { opacity: 0; translate: 0 -6px; } }
+}
 #hint { left: 50%; bottom: 76px; transform: translateX(-50%); padding: 8px 14px; z-index: 2; font: 500 12.5px var(--f-body); white-space: nowrap; transition: opacity .4s; }
 #hint.out { opacity: 0; pointer-events: none; }
 #more, .sum { display: none; }
@@ -146,13 +182,25 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #legend .t { grid-column: 1 / -1; }
 }
 </style>
+<style>
+html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+body { margin: 0; height: 100vh; height: 100dvh; user-select: none; -webkit-user-select: none; }
+input, textarea { user-select: text; -webkit-user-select: text; font-size: max(16px, 1em); }
+button { touch-action: manipulation; }
+:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+</style>
 </head>
 <body>
 
 <div id="app">
   <canvas id="scene" aria-label="Mapa 3D interactivo de Puerto Rico con relieve y sus 78 municipios"></canvas>
   <div id="labels" aria-hidden="true"></div>
-  <div id="loading">Cargando mapa…</div>
+  <div id="loading" role="status"><div class="splash">
+    <img src="icons/icon-192.png" alt="" width="96" height="96">
+    <h1>Puerto Rico 3D</h1>
+    <p id="load-msg">Cargando relieve y municipios</p>
+    <div class="bar" aria-hidden="true"><i id="load-bar"></i></div>
+  </div></div>
 
   <header id="finder" class="panel">
     <div class="brand"><h1>Puerto Rico</h1><span class="eyebrow">78 municipios</span></div>
@@ -207,8 +255,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   <div id="hint" class="panel" aria-live="polite" hidden></div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
+<script src="libs/three.min.js"></script>
+<script src="libs/OrbitControls.js"></script>
+<script src="libs/motion.js"></script>
 <script>
 (async () => {
   'use strict';
@@ -230,14 +279,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const loadImg = src => retry(() => new Promise((ok, fail) => { const im = new Image(); im.onload = () => ok(im); im.onerror = () => fail(new Error('imagen')); im.src = src; }), src);
   let DATA, texImg, hmImg;
   try {
-    [DATA, texImg, hmImg] = await Promise.all([getJSON('data/municipios.json'), loadImg('data/relieve.webp'), loadImg('data/alturas.png')]);
+    let done = 0; const tick = v => { done++; $('load-bar').style.setProperty('--p', `${8 + done / 3 * 92}%`); return v; };
+    [DATA, texImg, hmImg] = await Promise.all([getJSON('data/municipios.json').then(tick), loadImg('data/relieve.webp').then(tick), loadImg('data/alturas.png').then(tick)]);
   } catch (e) {
-    const box = $('loading'); box.textContent = '';
-    const w = document.createElement('div'); w.style.cssText = 'display:grid;gap:10px;justify-items:center;text-align:center;padding:0 24px';
+    const box = $('loading').querySelector('.splash'); box.querySelector('.bar').remove(); $('load-msg').remove();
+    const w = document.createElement('div'); w.className = 'err';
     const t = document.createElement('div'); t.textContent = 'No se pudieron cargar los datos del mapa. Revisa la conexión e inténtalo de nuevo.';
     const d = document.createElement('small'); d.style.opacity = '.7'; d.textContent = `${e.file || ''} ${e.message || ''}`.trim();
     const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Reintentar';
-    b.style.cssText = 'font:600 14px var(--f-body);padding:10px 18px;border-radius:10px;border:0;background:#13262b;color:#fff;cursor:pointer';
     b.addEventListener('click', () => location.reload());
     w.append(t, d, b); box.append(w); return;
   }
@@ -290,11 +339,27 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const maxAniso = renderer.capabilities.getMaxAnisotropy();
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0xffffff, 320, 950);
-  const camera = new THREE.PerspectiveCamera(36, 1, 2, 4000);
+  scene.fog = new THREE.Fog(0xffffff, 900, 2600);
+  // Cielo: color según el rayo de vista de la cámara (adaptado de storytold/EffectCraft, crates/gpu/src/shaders/sky.wgsl, MIT).
+  // Solo se ve al inclinar la vista en modo 3D; en el horizonte se funde con la neblina.
+  const skyU = { zen: { value: new THREE.Color('#4f9fd2') }, hor: { value: new THREE.Color('#d5e7eb') }, sunDir: { value: new THREE.Vector3(-80, 120, -60).normalize() } };
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(5000, 48, 24), new THREE.ShaderMaterial({
+    side: THREE.BackSide, depthWrite: false, fog: false, uniforms: skyU,
+    vertexShader: 'varying vec3 vDir; void main() { vDir = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+    fragmentShader: `uniform vec3 zen; uniform vec3 hor; uniform vec3 sunDir; varying vec3 vDir;
+      void main() {
+        vec3 d = normalize(vDir);
+        float v = acos(clamp(-d.y, -1.0, 1.0)) / 3.141592653589793;   // como equirect_uv en sky.wgsl
+        float t = clamp((v - 0.5) * 2.0, 0.0, 1.0);
+        vec3 c = mix(hor, zen, pow(t, 0.6));
+        c += vec3(1.0, 0.93, 0.8) * pow(max(dot(d, sunDir), 0.0), 48.0) * 0.4;
+        gl_FragColor = linearToOutputTexel(vec4(c, 1.0));
+      }` }));
+  sky.renderOrder = -1; scene.add(sky);
+  const camera = new THREE.PerspectiveCamera(36, 1, 2, 6000);
   const controls = new THREE.OrbitControls(camera, canvas);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
-  controls.maxPolarAngle = Math.PI * 0.46; controls.minDistance = 8; controls.maxDistance = 760;
+  controls.maxPolarAngle = Math.PI * 0.46; controls.minDistance = 8; controls.maxDistance = 1300;
   controls.screenSpacePanning = false; controls.autoRotateSpeed = 0.5; controls.zoomSpeed = 1.2; controls.rotateSpeed = 0.6;
   // Navegación tipo mapa: arrastrar mueve; girar con botón derecho / Shift (ratón) o con dos dedos (táctil)
   controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
@@ -417,12 +482,28 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     DATA.forEach(m => { c.fillStyle = c.strokeStyle = regColor.get(m.region) || '#ffffff'; c.lineWidth = 1.5; muniPath(c, m, IW, IH); c.fill('evenodd'); c.stroke(); }); }
   const regTex = new THREE.CanvasTexture(regC); regTex.encoding = THREE.sRGBEncoding;
   const uni = { barMap: { value: null }, barIdMap: { value: null }, barBox: { value: new THREE.Vector4(0, 0, 1, 1) }, barOn: { value: 0 }, hovBar: { value: -1 }, selBar: { value: -1 },
+    toneSat: { value: 0.16 }, toneLight: { value: 0.02 },
     solidOn: { value: 0 }, solidGreen: { value: new THREE.Color('#6cad5c') },
     idMap: { value: idTex }, regMap: { value: regTex }, regionOn: { value: 0 }, selId: { value: -1 }, hovId: { value: -1 }, accent: { value: new THREE.Color() } };
   const terrainMat = new THREE.MeshStandardMaterial({ map: relTex, roughness: 0.95, metalness: 0, alphaTest: 0.5 });
+  // Ajuste de saturación y luz del relieve (fxt_adjust_sat / fxt_adjust_light de storytold/EffectCraft, fx_tone.wgsl, MIT)
+  const TONE_GLSL = `
+    float fxtSat(float s, float sat) { return sat >= 0.0 ? s + (1.0 - s) * sat * min(s, 1.0) : s * (1.0 + sat); }
+    float fxtLight(float l, float light) { return light >= 0.0 ? l + (1.0 - l) * light : l * (1.0 + light); }
+    vec3 rgb2hsl(vec3 c) { float mx = max(c.r, max(c.g, c.b)), mn = min(c.r, min(c.g, c.b)), l = (mx + mn) * 0.5, d = mx - mn;
+      if (d < 1e-5) return vec3(0.0, 0.0, l);
+      float s = l > 0.5 ? d / (2.0 - mx - mn) : d / (mx + mn); float h;
+      if (mx == c.r) h = (c.g - c.b) / d + (c.g < c.b ? 6.0 : 0.0); else if (mx == c.g) h = (c.b - c.r) / d + 2.0; else h = (c.r - c.g) / d + 4.0;
+      return vec3(h / 6.0, s, l); }
+    float hue2rgb(float p, float q, float t) { t = fract(t); if (t < 1.0/6.0) return p + (q - p) * 6.0 * t; if (t < 0.5) return q; if (t < 2.0/3.0) return p + (q - p) * (2.0/3.0 - t) * 6.0; return p; }
+    vec3 hsl2rgb(vec3 h) { if (h.y < 1e-5) return vec3(h.z); float q = h.z < 0.5 ? h.z * (1.0 + h.y) : h.z + h.y - h.z * h.y, p = 2.0 * h.z - q;
+      return vec3(hue2rgb(p, q, h.x + 1.0/3.0), hue2rgb(p, q, h.x), hue2rgb(p, q, h.x - 1.0/3.0)); }
+    uniform float toneSat; uniform float toneLight;
+  `;
   terrainMat.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, uni);
-    sh.fragmentShader = 'uniform sampler2D barMap; uniform sampler2D barIdMap; uniform vec4 barBox; uniform float barOn; uniform float hovBar; uniform float selBar;\nuniform float solidOn; uniform vec3 solidGreen;\nuniform sampler2D idMap; uniform sampler2D regMap; uniform float regionOn; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+    sh.fragmentShader = TONE_GLSL + 'uniform sampler2D barMap; uniform sampler2D barIdMap; uniform vec4 barBox; uniform float barOn; uniform float hovBar; uniform float selBar;\nuniform float solidOn; uniform vec3 solidGreen;\nuniform sampler2D idMap; uniform sampler2D regMap; uniform float regionOn; uniform float selId; uniform float hovId; uniform vec3 accent;\n' + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+      { vec3 hs = rgb2hsl(diffuseColor.rgb); hs.y = fxtSat(hs.y, toneSat); hs.z = fxtLight(hs.z, toneLight); diffuseColor.rgb = hsl2rgb(hs); }
       float mid = floor(texture2D(idMap, vUv).r * 255.0 / 3.0 + 0.5) - 1.0;
       float l = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));   // luz del relieve original
       if (solidOn > 0.5) diffuseColor.rgb = solidGreen;
@@ -526,7 +607,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
   function applyTheme() {
     const fog = new THREE.Color(css('--fog'));
-    scene.fog.color.copy(fog); renderer.setClearColor(fog);
+    scene.fog.color.copy(fog); renderer.setClearColor(fog); skyU.hor.value.copy(fog);
     bordersMat.color.set(css('--border'));
     uni.accent.value.set(css('--accent')); selLineMat.color.set(css('--accent'));
     islandTop.color.set(css('--island')); islandSide.color.set(css('--island-side'));
@@ -639,7 +720,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
   function homeView() {
     const phone = size.w <= 640;   // en vertical se encuadra la isla grande
-    const d = Math.min(740, phone ? fitDistance(92, 30, 1.0) : fitDistance(112, 34, 1.08));
+    const d = Math.min(1250, phone ? fitDistance(92, 30, 1.02) : fitDistance(112, 34, 1.08));
     const dir = !is3D ? FLAT_DIR.clone() : (phone ? new THREE.Vector3(0, 0.62, 0.78) : new THREE.Vector3(0, 0.74, 0.67)).normalize();
     const t = phone ? new THREE.Vector3(2, 0, -2) : new THREE.Vector3(18, 0, -1);
     return { target: t, pos: dir.multiplyScalar(d).add(t) };
@@ -766,6 +847,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       bars.append(bt);
     });
     $('bars-title').textContent = `Barrios (${list.length})`; $('bars-title').hidden = false;
+    staggerIn([...bars.children]);
     showComunidades(i, req);
     if (!$('i-sum').textContent.includes('barrios')) $('i-sum').textContent += ` · ${list.length} barrios`;
   }
@@ -825,6 +907,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       ZM.subs.forEach((sb, j) => { const bt = document.createElement('button'); bt.type = 'button';
         const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = sb.color; bt.append(sw, sb.name);
         bt.addEventListener('click', () => selectSub(j, true)); $('subs').append(bt); });
+      staggerIn([...$('subs').children]);
     }
     // sectores: puntos con nombre
     ZM.secs = secsAll.filter(sc => sc.barrio === b.id);
@@ -833,6 +916,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       $('secs-title').textContent = `Sectores (${ZM.secs.length})`; $('secs-title').hidden = false;
       ZM.secs.forEach((sc, j) => { const bt = document.createElement('button'); bt.type = 'button'; bt.textContent = sc.name;
         bt.addEventListener('click', () => selectSec(j)); $('secs').append(bt); });
+      staggerIn([...$('secs').children]);
     }
     if (!ZM.subs.length && !ZM.secs.length) { $('zoom-note').textContent = 'Este barrio no tiene subbarrios ni sectores registrados.'; $('zoom-note').hidden = false; }
   }
@@ -852,6 +936,20 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     flyToBox({ x0: x - 1.2, x1: x + 1.2, y0: y - 1.2, y1: y + 1.2 }, 3);
   }
 
+  // ---------- Animaciones de interfaz con Motion (motion.dev); sin Motion o con movimiento reducido, todo aparece sin animar ----------
+  const M = !reduceMotion && window.Motion && window.Motion.animate ? window.Motion : null;
+  // Entrada escalonada (patrón de ln-dev7/landing-pages: retraso limitado para que listas largas no tarden)
+  function staggerIn(nodes) {
+    if (!M || !nodes.length) return;
+    M.animate(nodes, { opacity: [0, 1], transform: ['translateY(6px) scale(.96)', 'none'] },
+      { duration: 0.32, delay: (i) => Math.min(i, 12) * 0.022, ease: [0.2, 0.9, 0.3, 1] });
+  }
+  // Cifra que cuenta hasta su valor
+  function countTo(el, value, render) {
+    if (!M || !isFinite(value)) { el.innerHTML = render(value); return; }
+    M.animate(0, value, { duration: 0.7, ease: [0.2, 0.8, 0.2, 1], onUpdate: v => { el.innerHTML = render(v); } });
+  }
+
   // ---------- Selección ----------
   const fmt = new Intl.NumberFormat('es-PR', { maximumFractionDigits: 1 }), fmt0 = new Intl.NumberFormat('es-PR');
   const fmtLL = ([lon, lat]) => `${lat.toFixed(3)}°N ${Math.abs(lon).toFixed(3)}°O`;
@@ -864,9 +962,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const m = DATA[i];
     $('i-code').textContent = m.id; $('i-name').textContent = m.name;
     $('i-reg').textContent = 'Región ' + m.region; $('i-regsw').style.background = regColor.get(m.region);
-    $('i-area').innerHTML = `${fmt.format(m.areaKm2)} km² <small>· ${fmt.format(m.areaKm2 / 2.58999)} mi²</small>`;
+    countTo($('i-area'), m.areaKm2, v => `${fmt.format(v)} km² <small>· ${fmt.format(v / 2.58999)} mi²</small>`);
     $('i-water').textContent = `${fmt.format(m.aguaKm2)} km²`;
-    $('i-alt').textContent = m.maxAlt == null ? 'Sin dato (isla)' : `${fmt0.format(m.maxAlt)} m`;
+    if (m.maxAlt == null) $('i-alt').textContent = 'Sin dato (isla)'; else countTo($('i-alt'), m.maxAlt, v => `${fmt0.format(Math.round(v / 10) * 10)} m`);
     $('i-pos').textContent = fmtLL(m.label);
     const nbs = $('nbs'); nbs.textContent = '';
     if (!m.nb.length) { const s = document.createElement('span'); s.className = 'none'; s.textContent = 'Isla municipio, sin colindancias terrestres.'; nbs.append(s); }
@@ -879,6 +977,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     $('i-sum').textContent = `${fmt.format(m.areaKm2)} km²` + (m.maxAlt != null ? ` · hasta ${fmt0.format(m.maxAlt)} m` : '');
     setCompact(true);
     info.hidden = false; info.scrollTop = 0;
+    staggerIn([...$('nbs').children]);
     showBarrios(i);
     if (fly) flyToMuni(i);
     dispatch(m);
@@ -1069,11 +1168,12 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     // no dejar que el mapa se vaya fuera de la pantalla al arrastrar
     const tg = controls.target, cx = THREE.MathUtils.clamp(tg.x, -175, 180), cz = THREE.MathUtils.clamp(tg.z, -95, 95);
     if (cx !== tg.x || cz !== tg.z) { camera.position.x += cx - tg.x; camera.position.z += cz - tg.z; tg.x = cx; tg.z = cz; }
+    sky.position.copy(camera.position);
     renderer.render(scene, camera);
     placeLabels(size.w, size.h);
     requestAnimationFrame(frame);
   }
-  $('loading').remove();
+  { const ld = $('loading'); ld.classList.add('out'); setTimeout(() => ld.remove(), 600); }
   requestAnimationFrame(frame);
   renderList();
 
@@ -1091,5 +1191,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   };
 })();
 </script>
+
+<script>window.APP_VERSION = '1.0.0';</script>
+<script src="js/pwa.js" defer></script>
 </body>
 </html>
