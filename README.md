@@ -32,6 +32,13 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - **Seguir mi ubicación**: tras "Ubicarme", el punto azul te sigue; la cámara te acompaña (salvo si acabas de mover el mapa), la pantalla no se apaga y la ficha cambia sola de pueblo y barrio. "Detener" lo apaga.
 - **Medir**: toca puntos en el mapa; muestra la distancia total y cuánto se sube y se baja por el relieve.
 - **Población del Censo 2020** (P.L. 94-171): personas, densidad y viviendas de cada pueblo; personas de cada barrio, subbarrio y comunidad.
+- **Barra de pestañas**: Capas, 3D, Ubicarme, Medir, Ruta y Más, siempre dentro de la pantalla (también en iPhone con barra inferior).
+- **Ruta en carro o a pie** entre dos puntos (o desde tu ubicación), con distancia, tiempo y perfil de elevación. Usa el servicio público OSRM de FOSSGIS (routing.openstreetmap.de); necesita internet.
+- **Perfil de elevación** al medir y al trazar rutas.
+- **Capa de densidad de población** (hab/km², Censo 2020) para pueblos y barrios, con leyenda.
+- **Clima actual** del pueblo abierto (Open-Meteo, sin clave) y **puesto por población** (#1–78).
+- **Guardar todo para usar sin internet** (menú Más): descarga barrios, comunidades, subbarrios y sectores de los 78 pueblos.
+- **Ayuda de ubicación**: si el permiso está negado, la app explica cómo activarlo en iPhone o Android.
 - **Islas con relieve**: Vieques, Culebra y Mona en 3D con alturas reales (`data/islas/`, `scripts/islas.py`).
 - **Relieve exacto**: alturas en metros del USGS 3DEP (mosaicos Terrarium de AWS); altura máxima real de cada municipio y barrio.
 

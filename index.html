@@ -56,7 +56,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); ove
   backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2);
   box-shadow: 0 10px 30px -12px rgba(0, 0, 0, .4); }
 
-#finder { top: 16px; left: max(16px, env(safe-area-inset-left, 0px)); width: min(300px, calc(100% - 32px)); padding: 14px; display: grid; gap: 10px; z-index: 3; }
+#finder { top: calc(12px + env(safe-area-inset-top, 0px)); left: max(16px, env(safe-area-inset-left, 0px)); width: min(300px, calc(100% - 32px)); padding: 14px; display: grid; gap: 10px; z-index: 3; }
 .brand { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 .brand h1 { margin: 0; font: 700 20px/1.1 var(--f-display); letter-spacing: -.01em; }
 .eyebrow { font: 500 11px/1 var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
@@ -69,7 +69,7 @@ body { background: var(--bg); color: var(--ink); font-family: var(--f-body); ove
 #list li:hover, #list li.active { background: color-mix(in srgb, var(--accent) 14%, transparent); }
 #list li.cur { color: var(--accent); font-weight: 600; }
 
-#info { top: 16px; right: max(16px, env(safe-area-inset-right, 0px)); width: 300px; padding: 16px 16px 14px; z-index: 3; display: grid; gap: 12px; }
+#info { top: calc(12px + env(safe-area-inset-top, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); width: 300px; padding: 16px 16px 14px; z-index: 3; display: grid; gap: 12px; }
 #info .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 #info h2 { margin: 4px 0 0; font: 700 26px/1.05 var(--f-display); letter-spacing: -.015em; text-wrap: balance; }
 #close { flex: none; width: 30px; height: 30px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font-size: 16px; cursor: pointer; }
@@ -102,23 +102,59 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
 .lbl.sec::before { content: ""; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #14201b; box-shadow: 0 0 0 1.5px #fff; margin-right: 4px; vertical-align: 1px; }
 .lbl.sec.on { font-size: 12.5px; font-weight: 700; color: #b8371a; }
 .lbl.com { font-style: italic; font-size: 11.5px; color: #fff; }
-#tools .sep { width: 1px; align-self: stretch; background: var(--line); margin: 4px 2px; }
 .bar-sel { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 8px 10px; border-radius: 9px; background: color-mix(in srgb, var(--accent) 12%, transparent); font: 600 14px var(--f-body); }
 .bar-sel small { font: 400 11.5px var(--f-mono); color: var(--muted); }
 
-#tools { left: max(16px, env(safe-area-inset-left, 0px)); bottom: 16px; padding: 6px; display: flex; gap: 4px; align-items: center; z-index: 2; flex-wrap: wrap; max-width: calc(100% - 32px); box-sizing: border-box; }
-#tools button { font: 500 12.5px var(--f-body); color: var(--ink); background: transparent; border: 1px solid transparent; border-radius: 8px; padding: 7px 10px; cursor: pointer; }
-#tools button:hover { border-color: var(--line); }
-#tools button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+/* Barra de pestañas inferior (como una app nativa) y hojas desplegables */
+:root { --tabs-h: 64px; --tabs-gap: calc(14px + env(safe-area-inset-bottom, 0px)); --above-tabs: calc(var(--tabs-h) + var(--tabs-gap) + 10px); }
+#tools { left: 50%; translate: -50% 0; bottom: var(--tabs-gap); width: min(calc(100% - 24px), 520px); box-sizing: border-box; padding: 5px; display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; z-index: 4; }
+#tools .tab { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; padding: 4px 2px; border: 0; border-radius: 11px; background: transparent; color: var(--ink); font: 600 11px/1.1 var(--f-body); cursor: pointer; }
+#tools .tab:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+#tools .tab[aria-pressed="true"], #tools .tab[aria-expanded="true"] { background: var(--ink); color: var(--bg); }
+.sheet { left: 50%; translate: -50% 0; bottom: var(--above-tabs); width: min(calc(100% - 24px), 380px); box-sizing: border-box; padding: 8px; display: grid; gap: 2px; z-index: 5; }
+.sheet .sh-t { padding: 6px 10px 4px; font: 500 10.5px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
+.sheet .row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 46px; padding: 0 12px; border: 0; border-radius: 10px; background: transparent; color: var(--ink); font: 500 14.5px var(--f-body); text-align: left; cursor: pointer; }
+.sheet .row:hover { background: color-mix(in srgb, var(--ink) 6%, transparent); }
+.sheet .sw-row::after { content: ""; flex: none; width: 38px; height: 22px; border-radius: 999px; background: color-mix(in srgb, var(--ink) 18%, transparent); box-shadow: inset 0 0 0 2px transparent; transition: background .2s;
+  background-image: radial-gradient(circle at 11px 50%, #fff 7px, transparent 7.5px); }
+.sheet .sw-row[aria-pressed="true"]::after { background-color: #2f9e6a; background-image: radial-gradient(circle at 27px 50%, #fff 7px, transparent 7.5px); }
+.sheet .exag { padding: 0 12px; }
+.sheet .exag input { width: 110px; }
+@media (prefers-reduced-motion: no-preference) { .sheet { transition: opacity .2s, translate .45s var(--spring); } @starting-style { .sheet { opacity: 0; translate: -50% 14px; } } }
+#route { left: 50%; translate: -50% 0; bottom: var(--above-tabs); z-index: 5; padding: 10px 12px; display: grid; gap: 8px; width: min(calc(100% - 24px), 380px); box-sizing: border-box; }
+#route .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 3px; border-radius: 10px; background: color-mix(in srgb, var(--ink) 7%, transparent); }
+#route .seg button { min-height: 34px; border: 0; border-radius: 8px; background: transparent; color: var(--ink); font: 600 13px var(--f-body); cursor: pointer; }
+#route .seg button[aria-pressed="true"] { background: var(--panel); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+#route .m-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 15px var(--f-body); font-variant-numeric: tabular-nums; }
+#route .m-row span { font: 400 12px var(--f-mono); color: var(--muted); }
+#route .m-btns { display: flex; gap: 6px; }
+#route .m-btns button { flex: 1; min-height: 36px; font: 600 12.5px var(--f-body); border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+#route #r-done { background: var(--ink); color: var(--bg); border-color: transparent; }
+.r-credit { font: 400 10.5px var(--f-mono); color: var(--muted); }
+.prof { height: 74px; }
+.prof svg { display: block; width: 100%; height: 60px; }
+.prof .ax { display: flex; justify-content: space-between; font: 400 10.5px var(--f-mono); color: var(--muted); }
+#loc-help { left: 50%; translate: -50% 0; top: calc(130px + env(safe-area-inset-top, 0px)); z-index: 7; width: min(calc(100% - 24px), 420px); box-sizing: border-box; padding: 14px 16px; display: grid; gap: 8px; font: 400 14px/1.45 var(--f-body); }
+#loc-help .lh-head { display: flex; justify-content: space-between; align-items: center; font: 700 16px var(--f-display); }
+#loc-help ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+#loc-help p { margin: 0; color: var(--muted); font-size: 13px; }
+.wx { margin: 4px 0 0; font: 500 13px var(--f-body); color: var(--muted); }
+.wx b { color: var(--ink); font-weight: 600; }
+#coord { display: block; font: 400 11px var(--f-mono); color: var(--muted); min-height: 1em; }
 .exag { display: flex; align-items: center; gap: 8px; padding: 0 8px; font: 500 12.5px var(--f-body); }
 .exag input { width: 90px; accent-color: var(--accent); }
 .exag output { font: 500 12px var(--f-mono); color: var(--muted); min-width: 3ch; font-variant-numeric: tabular-nums; }
 #coord { font: 400 11.5px var(--f-mono); color: var(--muted); padding: 0 8px; font-variant-numeric: tabular-nums; min-width: 24ch; }
 
-#legend { right: max(16px, env(safe-area-inset-right, 0px)); bottom: 52px; padding: 12px 14px; z-index: 2; display: grid; gap: 7px; min-width: 170px; }
+#legend { right: max(16px, env(safe-area-inset-right, 0px)); bottom: var(--above-tabs); padding: 12px 14px; z-index: 2; display: grid; gap: 7px; min-width: 170px; }
 #app.has-sel #legend { display: none; }
 #legend .t { font: 500 10.5px var(--f-mono); color: var(--muted); text-transform: uppercase; letter-spacing: .07em; }
 #legend button { display: flex; align-items: center; gap: 8px; font: 500 13px var(--f-body); color: var(--ink); background: transparent; border: 0; padding: 2px 0; cursor: pointer; text-align: left; }
+#legend .lg-row { display: flex; align-items: center; gap: 8px; font: 500 13px var(--f-body); }
+#legend .lg-row span.n { margin-left: auto; font: 400 11px var(--f-mono); color: var(--muted); }
+#legend .lg-note { font-size: 11.5px; color: var(--muted); max-width: 24ch; }
+@media (max-width: 640px) { #legend { padding: 8px 10px; gap: 4px; } #legend .lg-row, #legend button { font-size: 12px; } #legend .lg-note { display: none; } }
+.lbl.rt { background: #1a73e8; }
 #legend button span.n { margin-left: auto; font: 400 11px var(--f-mono); color: var(--muted); }
 #legend button:hover { color: var(--accent); }
 .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
@@ -161,20 +197,17 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 .ib:hover { color: var(--accent); border-color: var(--accent); }
 #fav[aria-pressed="true"] { color: #e8a317; border-color: #e8a317; }
 #fav[aria-pressed="false"] svg path { fill: none; }
-#tools .ic { display: inline-flex; align-items: center; gap: 5px; }
-#tools .ic[aria-pressed="true"] svg { color: inherit; }
 #follow-pill { right: max(16px, env(safe-area-inset-right, 0px)); top: calc(132px + env(safe-area-inset-top, 0px)); z-index: 4; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; font: 500 13px var(--f-body); color: var(--ink); cursor: pointer; }
 #follow-pill .dot { width: 10px; height: 10px; border-radius: 50%; background: #1a73e8; box-shadow: 0 0 0 0 rgba(26,115,232,.55); animation: me-pulse 1.8s infinite; }
 #follow-pill b { color: #c2381a; }
-@media (min-width: 641px) { #follow-pill { top: auto; right: auto; left: 50%; translate: -50% 0; bottom: 76px; } #app.has-sel #follow-pill { left: calc(50% - 160px); } }
-#measure { left: 50%; translate: -50% 0; bottom: calc(150px + env(safe-area-inset-bottom, 0px)); z-index: 5; padding: 10px 12px; display: grid; gap: 8px; min-width: min(92vw, 320px); }
+@media (min-width: 641px) { #follow-pill { top: auto; right: auto; left: 50%; translate: -50% 0; bottom: var(--above-tabs); } #app.has-sel #follow-pill { left: calc(50% - 160px); } }
+#measure { left: 50%; translate: -50% 0; bottom: var(--above-tabs); z-index: 5; padding: 10px 12px; display: grid; gap: 8px; min-width: min(92vw, 320px); }
 #measure .m-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 15px var(--f-body); font-variant-numeric: tabular-nums; }
 #measure .m-row span { font: 400 12px var(--f-mono); color: var(--muted); }
 #measure .m-btns { display: flex; gap: 6px; }
 #measure button { flex: 1; min-height: 36px; font: 600 12.5px var(--f-body); border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
 #measure #m-done { background: var(--ink); color: var(--bg); border-color: transparent; }
 .lbl.mpt { font: 700 10px/1 var(--f-mono); color: #fff; background: #e4502a; border: 2px solid #fff; border-radius: 999px; padding: 3px 6px; text-shadow: none; box-shadow: 0 2px 6px rgba(0,0,0,.35); }
-@media (max-width: 640px) { #tools button { padding: 7px 8px; font-size: 12px; } }
 #note { left: 50%; top: calc(110px + env(safe-area-inset-top, 0px)); translate: -50% 0; z-index: 6; padding: 10px 14px; font: 500 13.5px var(--f-body); max-width: min(92vw, 460px); text-align: center; }
 @media (prefers-reduced-motion: no-preference) { #note { transition: opacity .25s, translate .5s var(--spring); } @starting-style { #note { opacity: 0; translate: -50% -10px; } } }
 .lbl.me { color: #0b4f9c; font-weight: 800; text-shadow: 0 0 2px #fff, 0 0 3px #fff, 0 0 6px #fff; }
@@ -187,7 +220,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 #list .nm { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #list .nm small { display: block; font-size: 11.5px; color: var(--muted); font-weight: 400; }
 #list .star { color: #e8a317; margin-right: 4px; }
-#hint { left: 50%; bottom: 76px; transform: translateX(-50%); padding: 8px 14px; z-index: 2; font: 500 12.5px var(--f-body); white-space: nowrap; transition: opacity .4s; }
+#hint { left: 50%; bottom: var(--above-tabs); transform: translateX(-50%); padding: 8px 14px; z-index: 2; font: 500 12.5px var(--f-body); white-space: nowrap; transition: opacity .4s; }
 #hint.out { opacity: 0; pointer-events: none; }
 #more, .sum { display: none; }
 .hbtns { display: flex; gap: 6px; flex: none; }
@@ -198,27 +231,26 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #finder { right: max(16px, env(safe-area-inset-right, 0px)); width: auto; padding: 10px 12px; gap: 8px; }
   .brand h1 { font-size: 17px; }
   #list { max-height: 34vh; }
-  #info { top: auto; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(12px + env(safe-area-inset-bottom, 0px)); width: auto; max-height: 58vh; overflow-y: auto; gap: 10px; padding: 12px 14px; }
+  #info { top: auto; left: max(12px, env(safe-area-inset-left, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); bottom: calc(var(--tabs-h) + var(--tabs-gap) + 8px); width: auto; max-height: 58vh; overflow-y: auto; gap: 10px; padding: 12px 14px; }
   #info.compact { gap: 6px; }
   #info.compact > dl.stats, #info.compact > .nb-title, #info.compact > #nbs, #info.compact > #bars, #info.compact > #coms, #info.compact #subs, #info.compact #secs, #info.compact .zoom-t { display: none !important; }
   #info.compact .sum { display: block; margin: 0; font: 500 13px var(--f-body); color: var(--muted); font-variant-numeric: tabular-nums; }
   #info .reg { margin-top: 3px; }
   #more { display: inline-flex; align-items: center; height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 500 12.5px var(--f-body); cursor: pointer; }
-  #hint { bottom: calc(118px + env(safe-area-inset-bottom, 0px)); white-space: normal; text-align: center; width: max-content; max-width: calc(100% - 48px); }
+  #hint { white-space: normal; text-align: center; width: max-content; max-width: calc(100% - 48px); }
   #app.has-sel #hint { display: none; }
   #info h2 { font-size: 22px; }
-  #tools { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-  #app.has-sel #tools, #coord, #tip { display: none; }
-  #legend { left: max(16px, env(safe-area-inset-left, 0px)); right: auto; bottom: calc(110px + env(safe-area-inset-bottom, 0px)); grid-template-columns: 1fr 1fr; column-gap: 14px; }
+  #coord, #tip { display: none; }
+  #legend { left: max(16px, env(safe-area-inset-left, 0px)); right: auto; grid-template-columns: 1fr 1fr; column-gap: 14px; }
   #legend .t { grid-column: 1 / -1; }
 }
 </style>
 <style>
-html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
-body { margin: 0; height: 100vh; height: 100dvh; user-select: none; -webkit-user-select: none; }
+/* La app ocupa exactamente la pantalla visible; las zonas seguras (notch, barra inferior) las respetan los paneles */
+html { height: 100vh; height: 100dvh; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+body { margin: 0; height: 100%; overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
 input, textarea { user-select: text; -webkit-user-select: text; font-size: max(16px, 1em); }
 button { touch-action: manipulation; }
-:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 </style>
 </head>
 <body>
@@ -238,6 +270,7 @@ button { touch-action: manipulation; }
     <label for="q" class="sr">Buscar pueblo, barrio, comunidad o sector</label>
     <input id="q" type="search" placeholder="Buscar pueblo, barrio o sector…" autocomplete="off" spellcheck="false" enterkeyhint="search">
     <ul id="list" role="listbox" aria-label="Municipios" hidden></ul>
+    <span id="coord" aria-live="off"></span>
   </header>
 
   <section id="info" class="panel" hidden aria-live="polite">
@@ -246,6 +279,7 @@ button { touch-action: manipulation; }
       <div class="hbtns"><button id="fav" class="ib" type="button" aria-pressed="false" aria-label="Guardar en favoritos"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button><button id="share" class="ib" type="button" aria-label="Compartir enlace"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v6.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V12"/></svg></button><button id="more" type="button" aria-expanded="false">Detalles</button><button id="close" type="button" aria-label="Cerrar ficha">✕</button></div>
     </div>
     <p class="sum" id="i-sum"></p>
+    <p class="wx" id="i-wx" hidden></p>
     <dl class="stats">
       <div><dt>Población 2020</dt><dd id="i-pob"></dd></div>
       <div><dt>Densidad</dt><dd id="i-den"></dd></div>
@@ -270,28 +304,49 @@ button { touch-action: manipulation; }
     <div id="coms"></div>
   </section>
 
-  <div id="tools" class="panel">
-    <button id="t-3d" type="button" aria-pressed="false" title="Inclinar y girar el mapa">3D</button>
-    <button id="t-solid" type="button" aria-pressed="false" title="Mapa verde sólido, sin texturas ni relieve">Sólido</button>
-    <span class="sep" aria-hidden="true"></span>
-    <button id="t-labels" type="button" aria-pressed="true">Nombres</button>
-    <button id="t-borders" type="button" aria-pressed="true">Límites</button>
-    <button id="t-regions" type="button" aria-pressed="false">Regiones</button>
-    <button id="t-spin" type="button" aria-pressed="false" hidden>Girar</button>
-    <button id="t-reset" type="button">Vista inicial</button>
-    <button id="t-gps" type="button" class="ic"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>Ubicarme</button>
-    <button id="t-measure" type="button" class="ic" aria-pressed="false"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>Medir</button>
-    <button id="t-refresh" type="button" class="ic" aria-label="Actualizar la app"><svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>Actualizar</button>
-    <label class="exag" id="t-exag-wrap" for="t-exag" hidden>Relieve <input id="t-exag" type="range" min="1" max="8" step="0.5" value="4"><output id="t-exag-v" for="t-exag">×4</output></label>
-    <span id="coord" aria-live="off"></span>
+  <nav id="tools" class="panel" aria-label="Herramientas">
+    <button id="t-layers" class="tab" type="button" aria-expanded="false" aria-controls="sheet-layers"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><span>Capas</span></button>
+    <button id="t-3d" class="tab" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9z"/><path d="m4 7.5 8 4.5 8-4.5M12 12v9"/></svg><span>3D</span></button>
+    <button id="t-gps" class="tab" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg><span>Ubicarme</span></button>
+    <button id="t-measure" class="tab" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg><span>Medir</span></button>
+    <button id="t-route" class="tab" type="button" aria-pressed="false"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2.5"/><circle cx="18" cy="5" r="2.5"/><path d="M8.5 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.5"/></svg><span>Ruta</span></button>
+    <button id="t-more" class="tab" type="button" aria-expanded="false" aria-controls="sheet-more"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg><span>Más</span></button>
+  </nav>
+  <div id="sheet-layers" class="panel sheet" hidden>
+    <div class="sh-t">Capas</div>
+    <button id="t-labels" class="row sw-row" type="button" aria-pressed="true">Nombres</button>
+    <button id="t-borders" class="row sw-row" type="button" aria-pressed="true">Límites</button>
+    <button id="t-regions" class="row sw-row" type="button" aria-pressed="false">Regiones</button>
+    <button id="t-density" class="row sw-row" type="button" aria-pressed="false">Densidad de población</button>
+    <button id="t-solid" class="row sw-row" type="button" aria-pressed="false">Verde sólido (sin relieve)</button>
+  </div>
+  <div id="sheet-more" class="panel sheet" hidden>
+    <div class="sh-t">Más</div>
+    <button id="t-reset" class="row" type="button">Vista inicial</button>
+    <button id="t-spin" class="row sw-row" type="button" aria-pressed="false" hidden>Girar automáticamente</button>
+    <label class="exag row" id="t-exag-wrap" for="t-exag" hidden>Exagerar relieve <input id="t-exag" type="range" min="1" max="8" step="0.5" value="4"><output id="t-exag-v" for="t-exag">×4</output></label>
+    <button id="t-offline" class="row" type="button">Guardar todo para usar sin internet</button>
+    <button id="t-refresh" class="row" type="button">Buscar actualizaciones</button>
   </div>
   <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
-  <div id="credit">Límites: U.S. Census Bureau · Sectores: © OpenStreetMap · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
+  <div id="credit">Límites: U.S. Census Bureau · Sectores y rutas: © OpenStreetMap · Clima: Open-Meteo · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
   <div id="tip" hidden></div>
   <div id="note" class="panel" role="status" hidden></div>
+  <div id="route" class="panel" hidden>
+    <div class="seg" role="group" aria-label="Medio"><button id="r-car" type="button" aria-pressed="true">Carro</button><button id="r-foot" type="button" aria-pressed="false">A pie</button></div>
+    <div class="m-row"><strong id="r-info">Toca el punto de salida</strong><span id="r-sub"></span></div>
+    <div id="r-prof" class="prof" hidden></div>
+    <div class="m-btns"><button id="r-me" type="button">Desde mi ubicación</button><button id="r-clear" type="button">Borrar</button><button id="r-done" type="button">Terminar</button></div>
+    <small class="r-credit">Rutas: OSRM (FOSSGIS) · datos © OpenStreetMap. Calculadas en línea.</small>
+  </div>
+  <div id="loc-help" class="panel" role="dialog" aria-labelledby="lh-t" hidden>
+    <div class="lh-head"><strong id="lh-t">Activa la ubicación</strong><button id="lh-close" class="ib" type="button" aria-label="Cerrar">✕</button></div>
+    <div id="lh-body"></div>
+  </div>
   <button id="follow-pill" class="panel" type="button" hidden><span class="dot" aria-hidden="true"></span>Siguiendo tu ubicación · <b>Detener</b></button>
   <div id="measure" class="panel" hidden>
     <div class="m-row"><strong id="m-dist">Toca el mapa para marcar puntos</strong><span id="m-elev"></span></div>
+    <div id="m-prof" class="prof" hidden></div>
     <div class="m-btns"><button id="m-undo" type="button">Deshacer</button><button id="m-clear" type="button">Borrar</button><button id="m-done" type="button">Terminar</button></div>
   </div>
   <div id="hint" class="panel" aria-live="polite" hidden></div>
@@ -337,6 +392,7 @@ button { touch-action: manipulation; }
     w.append(t, d, b); box.append(w); return;
   }
   const byId = new Map(DATA.map((m, i) => [m.id, i]));
+  const POP_RANK = new Map(DATA.filter(m => m.pob != null).sort((a, b) => b.pob - a.pob).map((m, k) => [m.id, k + 1]));
   const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
   const hexRGB = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
 
@@ -654,7 +710,7 @@ button { touch-action: manipulation; }
       const light = (hex, t) => '#' + new THREE.Color(hex).lerp(new THREE.Color(0xffffff), t).getHexString();
       I.munis.forEach(i => {
         const m = DATA[i];
-        if (regionsOn) fill(m.polys, regColor.get(m.region) || '#ffffff', 0.72);
+        if (regionsOn) fill(m.polys, layerColor(m), 0.72);
         if (i === selected && BAR.list.length && BAR.fips === m.id) {
           BAR.list.forEach((b, k) => fill(b.polys, k === BAR.sel ? light(b.color, 0.35) : k === BAR.hov ? light(b.color, 0.22) : b.color, 0.8));
           if (ZM.painted >= 0) ZM.subs.forEach(sb => fill(sb.polys, sb.color, 0.8));
@@ -728,12 +784,21 @@ button { touch-action: manipulation; }
     DATA.forEach((m, i) => { m.maxAlt = m.altMax ?? (m.island ? null : Math.round(best[i] * 1000)); }); }
 
   // ---------- Tema ----------
-  let selected = -1, hovered = -1, regionsOn = false;
-  const regionMats = new Map(REGIONS.map(([n, c]) => [n, new THREE.MeshStandardMaterial({ roughness: 0.9, color: new THREE.Color(c) })]));
+  let selected = -1, hovered = -1, regionsOn = false, LAYER = null;   // LAYER: null | 'reg' (regiones) | 'den' (densidad)
+  // Densidad de población (hab/km², Censo 2020): clases y colores
+  const DENS = [[100, '#fff3c4'], [250, '#fed98e'], [500, '#fdb45f'], [1000, '#f2843c'], [2500, '#d9502a'], [Infinity, '#a8331c']];
+  const densColor = d => (DENS.find(([t]) => d < t) || DENS[DENS.length - 1])[1];
+  const layerColor = m => LAYER === 'den' ? (m.pob != null ? densColor(m.pob / Math.max(m.areaKm2, 0.01)) : '#d8d8d8') : (regColor.get(m.region) || '#ffffff');
+  const matCache = new Map();
+  const colorMat = c => { if (!matCache.has(c)) matCache.set(c, new THREE.MeshStandardMaterial({ roughness: 0.9, color: new THREE.Color(c) })); return matCache.get(c); };
+  const denC = document.createElement('canvas'); denC.width = IW; denC.height = IH;
+  { const c = denC.getContext('2d');
+    DATA.forEach(m => { c.fillStyle = c.strokeStyle = m.pob != null ? densColor(m.pob / Math.max(m.areaKm2, 0.01)) : '#d8d8d8'; c.lineWidth = 1.5; muniPath(c, m, IW, IH); c.fill('evenodd'); c.stroke(); }); }
+  const denTex = new THREE.CanvasTexture(denC); denTex.encoding = THREE.sRGBEncoding;
   function paintIslands() {
     islandsDirty = true;
     islandMeshes.forEach(ms => { const i = ms.userData.idx;
-      ms.material[0] = i === selected ? islandSelMat : i === hovered ? islandHovMat : regionsOn ? regionMats.get(DATA[i].region) : islandTop; });
+      ms.material[0] = i === selected ? islandSelMat : i === hovered ? islandHovMat : regionsOn ? colorMat(layerColor(DATA[i])) : islandTop; });
   }
   function applyTheme() {
     const fog = new THREE.Color(css('--fog'));
@@ -773,6 +838,7 @@ button { touch-action: manipulation; }
   }
   function placeLabels(w, h) {
     const on = showLabels && labelsReady, taken = [];
+    RT.labels.forEach(o => placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.25, labelsReady, taken, w, h));
     MS.labels.forEach(o => placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.25, labelsReady, taken, w, h));
     if (ME) placeOne(ME, (ME.isl ? ISL_H : ME.lh * EX) + 0.2, labelsReady, taken, w, h);
     for (const o of ZM.secLabels.slice().sort((a, b) => (b.j === ZM.secSel) - (a.j === ZM.secSel))) { placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.12, on, taken, w, h); o.el.classList.toggle('on', o.j === ZM.secSel); }
@@ -793,6 +859,8 @@ button { touch-action: manipulation; }
     const a = app.getBoundingClientRect(), phone = a.width <= 640;
     let x0 = 0, y0 = 0, x1 = a.width, y1 = a.height;
     if (phone) y0 = Math.min($('q').getBoundingClientRect().bottom - a.top + 14, a.height * 0.35);
+    // paneles de abajo (ruta, medir, barra): el área visible termina encima de ellos
+    { let top = a.height; ['route', 'measure', 'tools'].forEach(id => { const el = $(id); if (el && !el.hidden) top = Math.min(top, el.getBoundingClientRect().top - a.top - 8); }); y1 = Math.max(y0 + 140, Math.min(y1, top)); }
     if (!info.hidden) {
       const r = info.getBoundingClientRect();
       if (phone) y1 = Math.max(y0 + 140, r.top - a.top - 6); else x1 = Math.max(x0 + 240, r.left - a.left - 12);
@@ -930,7 +998,7 @@ button { touch-action: manipulation; }
     try { list = await BAR.cache.get(id); } catch (e) { BAR.cache.delete(id); return; }
     if (req !== BAR.req || selected !== i) return;
     BAR.list = list; BAR.fips = id;
-    list.forEach((b, k) => { b.color = barColor(b, k); });
+    list.forEach((b, k) => { b.color = LAYER === 'den' && b.pob != null ? densColor(b.pob / Math.max(b.areaKm2, 0.01)) : barColor(b, k); });
     // texturas de color e identificador sobre el rectángulo del municipio
     let lo0 = 1e9, lo1 = -1e9, la0 = 1e9, la1 = -1e9;
     list.forEach(b => b.polys.forEach(p => p[0].forEach(([x, y]) => { lo0 = Math.min(lo0, x); lo1 = Math.max(lo1, x); la0 = Math.min(la0, y); la1 = Math.max(la1, y); })));
@@ -1086,6 +1154,27 @@ button { touch-action: manipulation; }
     M.animate(0, value, { duration: 0.7, ease: [0.2, 0.8, 0.2, 1], onUpdate: v => { el.innerHTML = render(v); } });
   }
 
+  // ---------- Clima actual (Open-Meteo, sin clave); si falla, simplemente no se muestra ----------
+  const WX = new Map();
+  const WMO = c => c === 0 ? 'Despejado' : c <= 2 ? 'Parcialmente nublado' : c === 3 ? 'Nublado' : c <= 48 ? 'Neblina' : c <= 57 ? 'Llovizna' : c <= 67 ? 'Lluvia' : c <= 77 ? 'Nieve' : c <= 82 ? 'Aguaceros' : c <= 86 ? 'Aguaceros' : 'Tormenta eléctrica';
+  async function showWeather(m) {
+    const el = $('i-wx'); el.hidden = true;
+    let w = WX.get(m.id);
+    if (!w || Date.now() - w.t > 10 * 60 * 1000) {
+      try {
+        const [lon, lat] = m.label;
+        const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(3)}&longitude=${lon.toFixed(3)}&current=temperature_2m,apparent_temperature,relative_humidity_2m,precipitation,weather_code,wind_speed_10m&timezone=America%2FPuerto_Rico`);
+        if (!r.ok) return;
+        const c = (await r.json()).current; if (!c) return;
+        w = { t: Date.now(), c }; WX.set(m.id, w);
+      } catch (e) { return; }
+    }
+    if (selected < 0 || DATA[selected] !== m) return;
+    const c = w.c;
+    el.innerHTML = `Ahora: <b>${Math.round(c.temperature_2m)} °C</b> · ${WMO(c.weather_code)} · sensación ${Math.round(c.apparent_temperature)} °C · humedad ${Math.round(c.relative_humidity_2m)} %` + (c.precipitation > 0 ? ` · lluvia ${c.precipitation} mm` : '');
+    el.hidden = false;
+  }
+
   // ---------- Selección ----------
   const fmt = new Intl.NumberFormat('es-PR', { maximumFractionDigits: 1 }), fmt0 = new Intl.NumberFormat('es-PR');
   const fmtLL = ([lon, lat]) => `${lat.toFixed(3)}°N ${Math.abs(lon).toFixed(3)}°O`;
@@ -1101,7 +1190,7 @@ button { touch-action: manipulation; }
     countTo($('i-area'), m.areaKm2, v => `${fmt.format(v)} km² <small>· ${fmt.format(v / 2.58999)} mi²</small>`);
     $('i-water').textContent = `${fmt.format(m.aguaKm2)} km²`;
     if (m.maxAlt == null) $('i-alt').textContent = 'Sin dato'; else countTo($('i-alt'), m.maxAlt, v => `${fmt0.format(Math.round(v))} m`);
-    if (m.pob != null) { countTo($('i-pob'), m.pob, v => fmt0.format(Math.round(v))); $('i-den').textContent = `${fmt0.format(Math.round(m.pob / m.areaKm2))} hab/km²`; $('i-viv').textContent = fmt0.format(m.viv); }
+    if (m.pob != null) { countTo($('i-pob'), m.pob, v => `${fmt0.format(Math.round(v))} <small>· #${POP_RANK.get(m.id)} de 78</small>`); $('i-den').textContent = `${fmt0.format(Math.round(m.pob / m.areaKm2))} hab/km²`; $('i-viv').textContent = fmt0.format(m.viv); }
     else { $('i-pob').textContent = $('i-den').textContent = $('i-viv').textContent = 'Sin dato'; }
     const nbs = $('nbs'); nbs.textContent = '';
     if (!m.nb.length) { const s = document.createElement('span'); s.className = 'none'; s.textContent = 'Isla municipio, sin colindancias terrestres.'; nbs.append(s); }
@@ -1116,6 +1205,7 @@ button { touch-action: manipulation; }
     info.hidden = false; info.scrollTop = 0;
     staggerIn([...$('nbs').children]);
     BAR.ready = showBarrios(i);
+    showWeather(m);
     LINKX = null; syncHash(); updateFav();
     if (fly) flyToMuni(i);
     dispatch(m);
@@ -1184,6 +1274,7 @@ button { touch-action: manipulation; }
     if (moved > 6) return;
     const p = pick(e);
     if (MS.on) { if (isFinite(p.t)) addMeasurePoint(p.x, p.y); return; }
+    if (RT.on) { if (isFinite(p.t)) addRoutePoint(p.x, p.y); return; }
     if (p.idx >= 0 && p.idx === selected && BAR.list.length) {
       const ll = unproj(p.x, p.y), k = barrioAt(...ll);
       if (k >= 0 && k === BAR.sel && ZM.subs.length) { const j = subAt(...ll); if (j >= 0) { selectSub(j); return; } }
@@ -1389,16 +1480,45 @@ button { touch-action: manipulation; }
       GPS.lastM = i; GPS.lastB = bid;
     }
   }
-  gpsBtn.addEventListener('click', () => {
+  gpsBtn.addEventListener('click', async () => {
     if (GPS.watch != null) { stopFollow(); return; }
     if (!('geolocation' in navigator)) { note('Este navegador no permite usar la ubicación.'); return; }
+    try { const st = await navigator.permissions?.query({ name: 'geolocation' }); if (st && st.state === 'denied') { showLocHelp(); return; } } catch (e) { /* sin Permissions API */ }
     GPS.first = true; GPS.lastM = -1; GPS.lastB = '';
     note('Buscando tu ubicación…', 15000); setGpsUi(true); keepAwake(true);
     GPS.watch = navigator.geolocation.watchPosition(pos => { onPosition(pos); }, err => {
-      note(err.code === 1 ? 'Permite el acceso a la ubicación para usar “Ubicarme”.' : 'No se pudo obtener tu ubicación. Inténtalo de nuevo.');
+      if (err.code === 1) { $('note').hidden = true; showLocHelp(); }
+      else note(err.code === 3 ? 'La ubicación tardó demasiado. Sal a un lugar abierto e inténtalo de nuevo.' : 'No se pudo obtener tu ubicación. Revisa que la ubicación del teléfono esté activa.');
       if (err.code === 1 || GPS.first) { if (GPS.watch != null) navigator.geolocation.clearWatch(GPS.watch); GPS.watch = null; setGpsUi(false); keepAwake(false); }
     }, { enableHighAccuracy: true, timeout: 20000, maximumAge: 5000 });
   });
+
+  // ---------- Perfil de elevación (SVG): distancia (km) contra altura (m) ----------
+  function renderProfile(el, samples) {
+    if (!samples || samples.length < 2) { el.hidden = true; el.textContent = ''; return; }
+    const W = 300, H = 60, D = samples[samples.length - 1].d || 1;
+    let lo = Infinity, hi = -Infinity; samples.forEach(p => { lo = Math.min(lo, p.h); hi = Math.max(hi, p.h); });
+    const span = Math.max(hi - lo, 20), base = lo - span * 0.08;
+    const X = d => (d / D * W).toFixed(1), Y = h => (H - (h - base) / (span * 1.16) * H).toFixed(1);
+    const line = samples.map((p, k) => `${k ? 'L' : 'M'}${X(p.d)},${Y(p.h)}`).join('');
+    el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" role="img" aria-label="Perfil de elevación: de ${Math.round(lo)} a ${Math.round(hi)} metros">
+      <defs><linearGradient id="pg-${el.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#e4502a" stop-opacity=".45"/><stop offset="1" stop-color="#e4502a" stop-opacity=".04"/></linearGradient></defs>
+      <path d="${line}L${W},${H}L0,${H}Z" fill="url(#pg-${el.id})"/><path d="${line}" fill="none" stroke="#e4502a" stroke-width="2" vector-effect="non-scaling-stroke"/></svg>
+      <div class="ax"><span>${fmt0.format(Math.round(lo))}–${fmt0.format(Math.round(hi))} m</span><span>${fmt.format(D)} km</span></div>`;
+    el.hidden = false;
+  }
+  // muestras de altura cada ~50 m a lo largo de una lista de puntos {x, y, lon, lat}
+  function sampleAlong(points) {
+    const out = []; let d = 0;
+    for (let k = 0; k < points.length; k++) {
+      const p = points[k];
+      if (k === 0) { out.push({ d: 0, h: hAt(p.x, p.y) * 1000 }); continue; }
+      const a = points[k - 1], seg = haversine(a, p), n = Math.max(1, Math.ceil(seg / 0.05));
+      for (let s = 1; s <= n; s++) { const t = s / n; out.push({ d: d + seg * t, h: hAt(a.x + (p.x - a.x) * t, a.y + (p.y - a.y) * t) * 1000 }); }
+      d += seg;
+    }
+    return out;
+  }
 
   // ---------- Medir distancias: toca puntos; muestra la distancia total y cuánto se sube y se baja ----------
   const MS = { on: false, pts: [], labels: [], line: null };
@@ -1426,12 +1546,14 @@ button { touch-action: manipulation; }
     if (pts.length) { MS.line = mkLines(pts, measureMat, 7); exGroup.add(MS.line); }
     $('m-dist').textContent = MS.pts.length < 2 ? (MS.pts.length ? 'Toca otro punto' : 'Toca el mapa para marcar puntos') : `${fmt.format(dist)} km` + (dist < 1 ? ` (${fmt0.format(Math.round(dist * 1000))} m)` : '');
     $('m-elev').textContent = MS.pts.length >= 2 ? `↑ ${fmt0.format(Math.round(up))} m · ↓ ${fmt0.format(Math.round(downM))} m` : '';
+    renderProfile($('m-prof'), MS.pts.length >= 2 ? sampleAlong(MS.pts) : null);
   }
   function addMeasurePoint(x, y) {
     const [lon, lat] = unproj(x, y); MS.pts.push({ x, y, lon, lat }); redrawMeasure();
     try { navigator.vibrate?.(8); } catch (e) {}
   }
   function setMeasure(on) {
+    if (on) { if (RT.on) setRoute(false); closeSheets(); if (selected >= 0) select(-1, { fly: false }); }
     MS.on = on; $('t-measure').setAttribute('aria-pressed', on); $('measure').hidden = !on;
     if (!on) { MS.pts = []; redrawMeasure(); } else { redrawMeasure(); note('Medir: toca el mapa para marcar puntos.', 3000); }
   }
@@ -1440,12 +1562,147 @@ button { touch-action: manipulation; }
   $('m-clear').addEventListener('click', () => { MS.pts = []; redrawMeasure(); });
   $('m-done').addEventListener('click', () => setMeasure(false));
 
+  // ---------- Ruta en carro o a pie (OSRM de FOSSGIS, datos de OpenStreetMap) ----------
+  const RT = { on: false, mode: 'car', a: null, b: null, line: null, labels: [], ctrl: null };
+  const routeMat = new THREE.MeshBasicMaterial({ color: 0x1a73e8, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+  const routeEdgeMat = new THREE.MeshBasicMaterial({ color: 0xffffff, depthTest: false, depthWrite: false, side: THREE.DoubleSide });
+  // Cinta sobre el relieve (las líneas WebGL solo tienen 1 px de ancho)
+  function ribbon(path, w, mat, ro) {
+    const pos = [], idx = [];
+    for (let k = 0; k < path.length; k++) {
+      const a = path[Math.max(0, k - 1)], b = path[Math.min(path.length - 1, k + 1)];
+      let dx = b.x - a.x, dy = b.y - a.y; const L = Math.hypot(dx, dy) || 1; dx /= L; dy /= L;
+      const p = path[k], nx = -dy * w / 2, ny = dx * w / 2;
+      pos.push(p.x + nx, p.h, -(p.y + ny), p.x - nx, p.h, -(p.y - ny));
+      if (k) { const i = k * 2; idx.push(i - 2, i - 1, i, i - 1, i + 1, i); }
+    }
+    const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+    const m = new THREE.Mesh(g, mat); m.renderOrder = ro; return m;
+  }
+  function clearRouteDraw() {
+    if (RT.line) { RT.line.forEach(l => { l.parent.remove(l); l.geometry.dispose(); }); RT.line = null; }
+    RT.labels.forEach(o => o.el.remove()); RT.labels = [];
+  }
+  function routeMarkers() {
+    RT.labels.forEach(o => o.el.remove()); RT.labels = [];
+    if (RT.a) RT.labels.push(mkLabel('mpt rt', 'Salida', RT.a.lon, RT.a.lat, {}));
+    if (RT.b) RT.labels.push(mkLabel('mpt rt', 'Llegada', RT.b.lon, RT.b.lat, {}));
+  }
+  const ptOf = (lon, lat) => { const [x, y] = proj(lon, lat); return { x, y, lon, lat }; };
+  const fmtDur = s => { const m = Math.round(s / 60); return m < 60 ? `${m} min` : `${Math.floor(m / 60)} h ${m % 60} min`; };
+  async function computeRoute() {
+    if (!RT.a || !RT.b) return;
+    RT.ctrl?.abort(); const ctrl = RT.ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 15000);
+    $('r-info').textContent = 'Calculando ruta…'; $('r-sub').textContent = ''; renderProfile($('r-prof'), null);
+    const prof = RT.mode === 'car' ? 'routed-car' : 'routed-foot';
+    try {
+      const url = `https://routing.openstreetmap.de/${prof}/route/v1/driving/${RT.a.lon.toFixed(6)},${RT.a.lat.toFixed(6)};${RT.b.lon.toFixed(6)},${RT.b.lat.toFixed(6)}?overview=full&geometries=geojson`;
+      const r = await fetch(url, { signal: ctrl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const j = await r.json();
+      if (j.code !== 'Ok' || !j.routes?.length) throw new Error('sin-ruta');
+      if (ctrl !== RT.ctrl) return;
+      const rt = j.routes[0], coords = rt.geometry.coordinates.map(([lo, la]) => ptOf(lo, la));
+      clearRouteDraw();
+      const path = [];
+      for (let k = 1; k < coords.length; k++) {
+        const a = coords[k - 1], b = coords[k], n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 0.06));
+        for (let s = k === 1 ? 0 : 1; s <= n; s++) { const x = a.x + (b.x - a.x) * s / n, y = a.y + (b.y - a.y) * s / n; path.push({ x, y, h: hAt(x, y) + 0.05 }); }
+      }
+      // ancho según la longitud de la ruta, para que se vea bien a cualquier escala
+      let len = 0; for (let k = 1; k < path.length; k++) len += Math.hypot(path[k].x - path[k - 1].x, path[k].y - path[k - 1].y);
+      const w = THREE.MathUtils.clamp(len * 0.012, 0.05, 0.6);
+      RT.line = [ribbon(path, w * 1.6, routeEdgeMat, 8), ribbon(path, w, routeMat, 9)]; RT.line.forEach(l => exGroup.add(l)); routeMarkers();
+      const samples = sampleAlong(coords.filter((c, k) => k % 2 === 0 || k === coords.length - 1));
+      let up = 0, dn = 0; for (let k = 1; k < samples.length; k++) { const dh = samples[k].h - samples[k - 1].h; if (dh > 0) up += dh; else dn -= dh; }
+      $('r-info').textContent = `${fmt.format(rt.distance / 1000)} km · ${fmtDur(rt.duration)}`;
+      $('r-sub').textContent = `↑ ${fmt0.format(Math.round(up))} m · ↓ ${fmt0.format(Math.round(dn))} m`;
+      renderProfile($('r-prof'), samples);
+      let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; coords.forEach(c => { x0 = Math.min(x0, c.x); x1 = Math.max(x1, c.x); y0 = Math.min(y0, c.y); y1 = Math.max(y1, c.y); });
+      flyToBox({ x0: x0 - 1, x1: x1 + 1, y0: y0 - 1, y1: y1 + 1 }, 4);
+    } catch (e) {
+      if (ctrl !== RT.ctrl) return;
+      $('r-info').textContent = !navigator.onLine ? 'Sin conexión: las rutas necesitan internet.' : e.message === 'sin-ruta' ? 'No hay ruta entre esos puntos.' : e.name === 'AbortError' ? 'El servicio de rutas tardó demasiado. Inténtalo de nuevo.' : 'No se pudo calcular la ruta. Inténtalo de nuevo.';
+    } finally { clearTimeout(timer); }
+  }
+  function addRoutePoint(x, y) {
+    const [lon, lat] = unproj(x, y), pt = { x, y, lon, lat };
+    if (!RT.a || (RT.a && RT.b)) { clearRouteDraw(); RT.a = pt; RT.b = null; renderProfile($('r-prof'), null); $('r-info').textContent = 'Toca el destino'; $('r-sub').textContent = ''; routeMarkers(); }
+    else { RT.b = pt; routeMarkers(); computeRoute(); }
+    try { navigator.vibrate?.(8); } catch (e) {}
+  }
+  function setRoute(on) {
+    if (on) { if (MS.on) setMeasure(false); closeSheets(); if (selected >= 0) select(-1, { fly: false }); }
+    RT.on = on; $('t-route').setAttribute('aria-pressed', on); $('route').hidden = !on;
+    RT.ctrl?.abort(); RT.a = RT.b = null; clearRouteDraw(); renderProfile($('r-prof'), null);
+    $('r-info').textContent = 'Toca el punto de salida'; $('r-sub').textContent = '';
+  }
+  $('t-route').addEventListener('click', () => setRoute(!RT.on));
+  $('r-done').addEventListener('click', () => setRoute(false));
+  $('r-clear').addEventListener('click', () => setRoute(true));
+  [['r-car', 'car'], ['r-foot', 'foot']].forEach(([id, mode]) => $(id).addEventListener('click', () => {
+    RT.mode = mode; $('r-car').setAttribute('aria-pressed', mode === 'car'); $('r-foot').setAttribute('aria-pressed', mode === 'foot'); computeRoute();
+  }));
+  $('r-me').addEventListener('click', () => {
+    if (!('geolocation' in navigator)) { note('Este navegador no permite usar la ubicación.'); return; }
+    $('r-info').textContent = 'Buscando tu ubicación…';
+    navigator.geolocation.getCurrentPosition(pos => {
+      const { longitude: lon, latitude: lat } = pos.coords; setMe(lon, lat);
+      RT.a = ptOf(lon, lat); routeMarkers();
+      if (RT.b) computeRoute(); else $('r-info').textContent = 'Toca el destino';
+    }, err => { if (err.code === 1) showLocHelp(); else $('r-info').textContent = 'No se pudo obtener tu ubicación.'; }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  });
+
+  // ---------- Ayuda para activar la ubicación ----------
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  function showLocHelp() {
+    const steps = isIOS ? [
+      'Abre <b>Ajustes</b> → <b>Privacidad y seguridad</b> → <b>Localización</b> y actívala.',
+      'En esa misma lista, toca <b>Sitios web de Safari</b> y elige <b>Al usar la app</b> (o <b>Preguntar</b>).',
+      'En Safari, toca <b>aA</b> en la barra de dirección → <b>Configuración del sitio web</b> → <b>Ubicación</b> → <b>Permitir</b>.',
+      'Vuelve a la app y toca <b>Ubicarme</b> otra vez.'
+    ] : [
+      'Activa la <b>ubicación</b> del teléfono (desliza desde arriba y toca el ícono de ubicación).',
+      'En Chrome, toca el <b>candado</b> o el ícono junto a la dirección → <b>Permisos</b> → <b>Ubicación</b> → <b>Permitir</b>.',
+      'Vuelve a la app y toca <b>Ubicarme</b> otra vez.'
+    ];
+    $('lh-body').innerHTML = `<p>El teléfono no le está dando la ubicación a la app. Para activarla:</p><ol>${steps.map(t => `<li>${t}</li>`).join('')}</ol><p>Tu ubicación solo se usa en el teléfono; la app no la guarda ni la envía.</p>`;
+    $('loc-help').hidden = false;
+  }
+  $('lh-close').addEventListener('click', () => { $('loc-help').hidden = true; });
+
+  // ---------- Guardar todo para usar sin internet ----------
+  $('t-offline').addEventListener('click', async () => {
+    closeSheets();
+    if (!('caches' in window)) { note('Este navegador no permite guardar datos sin conexión.'); return; }
+    const urls = ['data/buscar.json'];
+    DATA.forEach(m => ['barrios', 'comunidades', 'subbarrios', 'sectores'].forEach(d => urls.push(`data/${d}/${m.id}.json`)));
+    const cache = await caches.open('pfknr-datos'); let done = 0, fail = 0;
+    const work = async () => { while (urls.length) { const u = urls.pop();
+      try { const r = await fetch(u, { cache: 'no-cache' }); if (r.ok) await cache.put(u, r); else fail++; } catch (e) { fail++; }
+      done++; if (done % 12 === 0) note(`Guardando para usar sin internet… ${done} archivos`, 4000); } };
+    note('Guardando para usar sin internet…', 4000);
+    await Promise.all([work(), work(), work(), work(), work(), work()]);
+    note(fail ? `Se guardó casi todo (${fail} archivos fallaron). Inténtalo de nuevo con mejor conexión.` : 'Listo: barrios, comunidades y sectores de los 78 pueblos ya funcionan sin internet.', 6000);
+  });
+
   // Actualizar: busca una versión nueva (PWA) y recarga conservando el lugar abierto
   $('t-refresh').addEventListener('click', async () => {
     note('Buscando actualizaciones…');
     try { if (window.PRUpdate) await window.PRUpdate(); } catch (e) { /* recarga normal */ }
     location.reload();
   });
+
+  // ---------- Hojas desplegables de la barra de pestañas ----------
+  const SHEETS = { 't-layers': 'sheet-layers', 't-more': 'sheet-more' };
+  function closeSheets(except) {
+    Object.entries(SHEETS).forEach(([b, sh]) => { if (b !== except) { $(sh).hidden = true; $(b).setAttribute('aria-expanded', 'false'); } });
+  }
+  Object.entries(SHEETS).forEach(([b, sh]) => $(b).addEventListener('click', () => {
+    const open = $(sh).hidden; closeSheets(b); $(sh).hidden = !open; $(b).setAttribute('aria-expanded', open);
+  }));
+  canvas.addEventListener('pointerdown', () => closeSheets(), true);
+  addEventListener('keydown', e => { if (e.key === 'Escape') closeSheets(); });
 
   // ---------- Herramientas ----------
   const toggle = (id, fn) => { const b = $(id); b.addEventListener('click', () => { const on = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', on); fn(on); }); };
@@ -1471,14 +1728,29 @@ button { touch-action: manipulation; }
     BAR.labels.forEach(o => o.vis = null);
   });
   const legend = $('legend');
-  REGIONS.forEach(([n, c]) => {
-    const b = document.createElement('button'); b.type = 'button';
-    const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = c;
-    const cnt = document.createElement('span'); cnt.className = 'n'; cnt.textContent = DATA.filter(m => m.region === n).length;
-    b.append(sw, n, cnt);
-    b.addEventListener('click', () => flyToRegion(n));
-    legend.append(b);
-  });
+  function buildLegend() {
+    legend.textContent = '';
+    const t = document.createElement('span'); t.className = 't'; legend.append(t);
+    if (LAYER === 'reg') {
+      t.textContent = 'Regiones';
+      REGIONS.forEach(([n, c]) => {
+        const b = document.createElement('button'); b.type = 'button';
+        const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = c;
+        const cnt = document.createElement('span'); cnt.className = 'n'; cnt.textContent = DATA.filter(m => m.region === n).length;
+        b.append(sw, n, cnt); b.addEventListener('click', () => flyToRegion(n)); legend.append(b);
+      });
+    } else if (LAYER === 'den') {
+      t.textContent = 'Habitantes por km² (2020)';
+      let lo = 0;
+      DENS.forEach(([hi, c]) => {
+        const r = document.createElement('div'); r.className = 'lg-row';
+        const sw = document.createElement('span'); sw.className = 'sw'; sw.style.background = c;
+        const cnt = document.createElement('span'); cnt.className = 'n'; cnt.textContent = DATA.filter(m => m.pob != null && m.pob / m.areaKm2 >= lo && m.pob / m.areaKm2 < hi).length;
+        r.append(sw, hi === Infinity ? `${fmt0.format(lo)} o más` : `${fmt0.format(lo)} – ${fmt0.format(hi)}`, cnt); legend.append(r); lo = hi;
+      });
+      const nt = document.createElement('small'); nt.className = 'lg-note'; nt.textContent = 'Al abrir un pueblo, sus barrios también se pintan por densidad.'; legend.append(nt);
+    }
+  }
   function flyToRegion(n) {
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
     muni.forEach(o => { if (o.m.region !== n || o.isl) return; x0 = Math.min(x0, o.lx); x1 = Math.max(x1, o.lx); y0 = Math.min(y0, o.ly); y1 = Math.max(y1, o.ly); });
@@ -1486,7 +1758,16 @@ button { touch-action: manipulation; }
     select(-1, { fly: false });
     flyToBox({ x0: x0 - 8, x1: x1 + 8, y0: y0 - 8, y1: y1 + 8 }, 30);
   }
-  toggle('t-regions', on => { regionsOn = on; uni.regionOn.value = on ? 1 : 0; legend.hidden = !on; paintIslands(); });
+  function setLayer(l) {
+    const prev = LAYER; LAYER = l; regionsOn = !!l;
+    $('t-regions').setAttribute('aria-pressed', l === 'reg'); $('t-density').setAttribute('aria-pressed', l === 'den');
+    uni.regMap.value = l === 'den' ? denTex : regTex; uni.regionOn.value = l ? 1 : 0;
+    legend.hidden = !l; buildLegend(); paintIslands();
+    // los barrios del pueblo abierto cambian a colores de densidad (o vuelven a la paleta)
+    if ((prev === 'den') !== (l === 'den') && selected >= 0) { const k = BAR.sel; BAR.ready = showBarrios(selected).then(() => { if (k >= 0) selectBarrio(k); }); }
+  }
+  $('t-regions').addEventListener('click', () => setLayer(LAYER === 'reg' ? null : 'reg'));
+  $('t-density').addEventListener('click', () => setLayer(LAYER === 'den' ? null : 'den'));
   $('t-reset').addEventListener('click', () => { select(-1, { fly: false }); const v = homeView(); flyTo(v.target, v.pos); });
   $('t-exag').addEventListener('input', e => setExag(+e.target.value));
 
@@ -1550,7 +1831,7 @@ button { touch-action: manipulation; }
 })();
 </script>
 
-<script>window.APP_VERSION = '1.2.0';</script>
+<script>window.APP_VERSION = '1.3.0';</script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

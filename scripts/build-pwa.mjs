@@ -42,11 +42,11 @@ const meta = `<meta charset="utf-8">
 `;
 // Ajustes de app nativa (skill apps-fran): sin rebote, sin selección accidental, altura dinámica
 const nativeCss = `<style>
-html, body { overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
-body { margin: 0; height: 100vh; height: 100dvh; user-select: none; -webkit-user-select: none; }
+/* La app ocupa exactamente la pantalla visible; las zonas seguras (notch, barra inferior) las respetan los paneles */
+html { height: 100vh; height: 100dvh; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; }
+body { margin: 0; height: 100%; overscroll-behavior: none; user-select: none; -webkit-user-select: none; }
 input, textarea { user-select: text; -webkit-user-select: text; font-size: max(16px, 1em); }
 button { touch-action: manipulation; }
-:root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 </style>
 `;
 const out = `<!doctype html>
