@@ -39,6 +39,9 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - **Clima actual** del pueblo abierto (Open-Meteo, sin clave) y **puesto por población** (#1–78).
 - **Guardar todo para usar sin internet** (menú Más): descarga barrios, comunidades, subbarrios y sectores de los 78 pueblos.
 - **Ayuda de ubicación**: si el permiso está negado, la app explica cómo activarlo en iPhone o Android.
+- **Indicaciones paso a paso** en la ruta (en español, con flechas y distancia; tocar un paso lleva a ese punto).
+- **Lugares de interés** (capa en Capas): 3,847 puntos de OpenStreetMap — salud, farmacias, escuelas, universidades, playas, hoteles, historia, miradores, deportes, policía, bomberos, gobierno y correo — con ficha, "Cómo llegar" y búsqueda (`data/lugares.json`, `scripts/lugares.py`). Casi todas las playas no tienen nombre en esos datos y aparecen como "Playa" con su barrio.
+- **Comparar pueblos**: en la ficha, "Comparar con otro pueblo" muestra población, puesto, densidad, viviendas, área, altura, barrios y región lado a lado.
 - **Islas con relieve**: Vieques, Culebra y Mona en 3D con alturas reales (`data/islas/`, `scripts/islas.py`).
 - **Relieve exacto**: alturas en metros del USGS 3DEP (mosaicos Terrarium de AWS); altura máxima real de cada municipio y barrio.
 

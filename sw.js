@@ -1,6 +1,6 @@
 // Service worker de Puerto Rico 3D: precache del núcleo, red primero para index y version.json,
 // y "stale-while-revalidate" para los datos de barrios, comunidades, subbarrios y sectores.
-const CACHE = 'pfknr-v1.3.0';
+const CACHE = 'pfknr-v1.4.0';
 const DATA_CACHE = 'pfknr-datos';   // lo que se guarda con "Guardar todo para usar sin internet"
 const CORE = [
   './', './index.html', './manifest.webmanifest', './version.json', './favicon.png',
@@ -9,7 +9,7 @@ const CORE = [
   './libs/fonts/inter-400.woff2', './libs/fonts/inter-500.woff2', './libs/fonts/inter-600.woff2', './libs/fonts/inter-700.woff2',
   './libs/fonts/sora-500.woff2', './libs/fonts/sora-700.woff2', './libs/fonts/ibm-plex-mono-400.woff2', './libs/fonts/ibm-plex-mono-500.woff2',
   './icons/icon-192.png', './icons/icon-512.png', './icons/icon-maskable-512.png', './icons/apple-touch-icon.png',
-  './data/municipios.json', './data/relieve.webp', './data/alturas.png', './data/buscar.json',
+  './data/municipios.json', './data/relieve.webp', './data/alturas.png', './data/buscar.json', './data/lugares.json',
   './data/islas/islas.json', './data/islas/este.webp', './data/islas/este-alturas.png', './data/islas/mona.webp', './data/islas/mona-alturas.png',
 ];
 

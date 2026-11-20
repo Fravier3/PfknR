@@ -141,6 +141,42 @@ dl.stats dd small { font-weight: 400; color: var(--muted); font-size: 12px; }
 #legend .lg-note { font-size: 11.5px; color: var(--muted); max-width: 24ch; }
 @media (max-width: 640px) { #legend { padding: 8px 10px; gap: 4px; } #legend .lg-row, #legend button { font-size: 12px; } #legend .lg-note { display: none; } }
 .lbl.rt { background: #1a73e8; }
+/* Lugares de interés */
+.lbl.poi { pointer-events: auto; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font: 600 10.5px/1 var(--f-body); color: #14201b; max-width: 22ch; overflow: hidden; text-overflow: ellipsis;
+  background: rgba(255,255,255,.92); border-radius: 999px; padding: 3px 7px 3px 3px; box-shadow: 0 1px 4px rgba(0,0,0,.3); text-shadow: none; }
+.lbl.poi i { flex: none; width: 15px; height: 15px; border-radius: 50%; background: var(--c); color: #fff; font: 700 9px/15px var(--f-body); font-style: normal; text-align: center; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 4px 10px 8px; }
+.chips button { display: inline-flex; align-items: center; gap: 6px; min-height: 32px; padding: 0 10px; border-radius: 999px; border: 1px solid var(--line); background: transparent; color: var(--muted); font: 500 12.5px var(--f-body); cursor: pointer; }
+.chips button i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+.chips button[aria-pressed="true"] { color: var(--ink); border-color: var(--ink); }
+#poi { left: 50%; translate: -50% 0; bottom: var(--above-tabs); z-index: 6; width: min(calc(100% - 24px), 380px); box-sizing: border-box; padding: 12px 14px; display: grid; gap: 8px; }
+#poi .lh-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+#poi strong { display: block; margin-top: 3px; font: 700 17px/1.2 var(--f-display); }
+#poi p { margin: 0; color: var(--muted); font-size: 13.5px; }
+#poi .m-btns, #route .m-btns { display: flex; gap: 6px; }
+#poi .m-btns button { flex: 1; min-height: 40px; font: 600 13px var(--f-body); border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--ink); cursor: pointer; }
+#poi #poi-go { background: #1a73e8; color: #fff; border-color: transparent; }
+/* Indicaciones de la ruta */
+#r-steps-wrap summary { cursor: pointer; font: 600 13px var(--f-body); padding: 4px 0; }
+#r-steps { margin: 4px 0 0; padding: 0; list-style: none; max-height: min(22vh, 200px); overflow-y: auto; display: grid; gap: 2px; }
+#r-steps li { display: grid; grid-template-columns: 26px 1fr auto; gap: 8px; align-items: center; padding: 7px 6px; border-radius: 8px; font-size: 13.5px; cursor: pointer; }
+#r-steps li:hover, #r-steps li.on { background: color-mix(in srgb, #1a73e8 12%, transparent); }
+#r-steps li .ar { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; background: #1a73e8; color: #fff; font: 700 14px var(--f-body); }
+#r-steps li small { font: 400 11.5px var(--f-mono); color: var(--muted); }
+/* Comparar */
+.wide { min-height: 40px; border-radius: 9px; border: 1px solid var(--line); background: transparent; color: var(--ink); font: 600 13px var(--f-body); cursor: pointer; }
+.wide:hover { border-color: var(--accent); color: var(--accent); }
+#cmp { left: 50%; top: 50%; translate: -50% -50%; z-index: 7; width: min(calc(100% - 24px), 440px); max-height: calc(100% - 40px); overflow-y: auto; box-sizing: border-box; padding: 14px 16px; display: grid; gap: 10px; }
+#cmp .lh-head { display: flex; justify-content: space-between; align-items: center; font: 700 17px var(--f-display); }
+.cmp-pick { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 14px; }
+.cmp-pick select { font: 500 16px var(--f-body); padding: 6px 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); color: var(--ink); }
+.cmp-wrap { overflow-x: auto; }
+#cmp-table { width: 100%; border-collapse: collapse; font-size: 13.5px; font-variant-numeric: tabular-nums; }
+#cmp-table th, #cmp-table td { padding: 7px 6px; border-bottom: 1px solid var(--line); text-align: right; }
+#cmp-table th:first-child, #cmp-table td:first-child { text-align: left; color: var(--muted); font-weight: 500; }
+#cmp-table thead th { font: 700 14px var(--f-display); color: var(--ink); }
+#cmp-table td.win { font-weight: 700; color: var(--ink); }
+#cmp-table td.win::after { content: " ▲"; color: #2f9e6a; font-size: 10px; }
 #legend button span.n { margin-left: auto; font: 400 11px var(--f-mono); color: var(--muted); }
 #legend button:hover { color: var(--accent); }
 .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.18); }
@@ -265,6 +301,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       <div><dt>Altura máxima</dt><dd id="i-alt"></dd></div>
       <div><dt>Viviendas</dt><dd id="i-viv"></dd></div>
     </dl>
+    <button id="cmp-open" class="wide" type="button">Comparar con otro pueblo</button>
     <div class="nb-title">Colinda con</div>
     <div id="nbs"></div>
     <div class="nb-title" id="bars-title" hidden>Barrios</div>
@@ -296,6 +333,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <button id="t-regions" class="row sw-row" type="button" aria-pressed="false">Regiones</button>
     <button id="t-density" class="row sw-row" type="button" aria-pressed="false">Densidad de población</button>
     <button id="t-solid" class="row sw-row" type="button" aria-pressed="false">Verde sólido (sin relieve)</button>
+    <button id="t-poi" class="row sw-row" type="button" aria-pressed="false">Lugares de interés</button>
+    <div id="poi-cats" class="chips" hidden></div>
   </div>
   <div id="sheet-more" class="panel sheet" hidden>
     <div class="sh-t">Más</div>
@@ -313,8 +352,20 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <div class="seg" role="group" aria-label="Medio"><button id="r-car" type="button" aria-pressed="true">Carro</button><button id="r-foot" type="button" aria-pressed="false">A pie</button></div>
     <div class="m-row"><strong id="r-info">Toca el punto de salida</strong><span id="r-sub"></span></div>
     <div id="r-prof" class="prof" hidden></div>
+    <details id="r-steps-wrap" hidden><summary id="r-steps-t">Indicaciones</summary><ol id="r-steps"></ol></details>
     <div class="m-btns"><button id="r-me" type="button">Desde mi ubicación</button><button id="r-clear" type="button">Borrar</button><button id="r-done" type="button">Terminar</button></div>
     <small class="r-credit">Rutas: OSRM (FOSSGIS) · datos © OpenStreetMap. Calculadas en línea.</small>
+  </div>
+  <div id="poi" class="panel" role="dialog" aria-labelledby="poi-name" hidden>
+    <div class="lh-head"><div><span class="eyebrow" id="poi-cat"></span><strong id="poi-name"></strong></div><button id="poi-close" class="ib" type="button" aria-label="Cerrar">✕</button></div>
+    <p id="poi-where"></p>
+    <div class="m-btns"><button id="poi-go" type="button">Cómo llegar</button><button id="poi-town" type="button">Ver pueblo</button></div>
+  </div>
+  <div id="cmp" class="panel" role="dialog" aria-labelledby="cmp-t" hidden>
+    <div class="lh-head"><strong id="cmp-t">Comparar pueblos</strong><button id="cmp-close" class="ib" type="button" aria-label="Cerrar">✕</button></div>
+    <label class="cmp-pick" for="cmp-b">Comparar <b id="cmp-a"></b> con <select id="cmp-b"></select></label>
+    <div class="cmp-wrap"><table id="cmp-table"></table></div>
+    <button id="cmp-map" class="wide" type="button">Ver los dos en el mapa</button>
   </div>
   <div id="loc-help" class="panel" role="dialog" aria-labelledby="lh-t" hidden>
     <div class="lh-head"><strong id="lh-t">Activa la ubicación</strong><button id="lh-close" class="ib" type="button" aria-label="Cerrar">✕</button></div>
@@ -816,6 +867,10 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   function placeLabels(w, h) {
     const on = showLabels && labelsReady, taken = [];
     RT.labels.forEach(o => placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.25, labelsReady, taken, w, h));
+    if (LUG.on && LUG.labels.length) {
+      const near = camera.position.distanceTo(controls.target) < 70 * Math.max(1, EX / 4);
+      for (const o of LUG.labels) placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.15, on && near, taken, w, h);
+    }
     MS.labels.forEach(o => placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.25, labelsReady, taken, w, h));
     if (ME) placeOne(ME, (ME.isl ? ISL_H : ME.lh * EX) + 0.2, labelsReady, taken, w, h);
     for (const o of ZM.secLabels.slice().sort((a, b) => (b.j === ZM.secSel) - (a.j === ZM.secSel))) { placeOne(o, (o.isl ? ISL_H : o.lh * EX) + 0.12, on, taken, w, h); o.el.classList.toggle('on', o.j === ZM.secSel); }
@@ -1270,8 +1325,10 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   let IDX = null, idxLoading = null;
   function loadIndex() {
     if (IDX || idxLoading) return idxLoading;
-    idxLoading = fetch('data/buscar.json').then(r => r.ok ? r.json() : []).catch(() => []).then(a => {
-      IDX = a.map(e => ({ name: e[0], t: e[1], m: e[2], b: e[3], lon: e[4], lat: e[5], key: norm(e[0]) })); renderList();
+    idxLoading = Promise.all([fetch('data/buscar.json').then(r => r.ok ? r.json() : []).catch(() => []), loadLugares()]).then(([a, lug]) => {
+      IDX = a.map(e => ({ name: e[0], t: e[1], m: e[2], b: e[3], lon: e[4], lat: e[5], key: norm(e[0]) }));
+      (lug || []).forEach(p => { if (p.name !== 'Playa') IDX.push({ name: p.name, t: 'l', cat: p.cat, m: p.m, b: p.b, lon: p.lon, lat: p.lat, key: norm(p.name), p }); });
+      renderList();
     });
     return idxLoading;
   }
@@ -1286,7 +1343,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       DATA.forEach((m, i) => { if (norm(m.name).includes(s)) matches.push({ kind: 'm', i, start: norm(m.name).startsWith(s) }); });
       matches.sort((a, b) => b.start - a.start);
       if (s.length >= 2 && IDX) {
-        const hits = IDX.filter(e => e.key.includes(s)).sort((a, b) => b.key.startsWith(s) - a.key.startsWith(s) || 'bucs'.indexOf(a.t) - 'bucs'.indexOf(b.t)).slice(0, 40);
+        const hits = IDX.filter(e => e.key.includes(s)).sort((a, b) => b.key.startsWith(s) - a.key.startsWith(s) || 'bucsl'.indexOf(a.t) - 'bucsl'.indexOf(b.t)).slice(0, 40);
         hits.forEach(e => matches.push({ kind: 'e', e }));
       }
     }
@@ -1296,7 +1353,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (!matches.length) { const li = document.createElement('li'); li.textContent = s.length < 2 || IDX ? 'Nada coincide con la búsqueda' : 'Buscando…'; li.style.cursor = 'default'; listEl.append(li); return; }
     let lastGroup = null;
     matches.forEach((it, k) => {
-      const group = it.kind === 'f' ? 'Favoritos' : it.kind === 'm' ? (s ? 'Pueblos' : 'Los 78 pueblos') : 'Barrios, comunidades y sectores';
+      const group = it.kind === 'f' ? 'Favoritos' : it.kind === 'm' ? (s ? 'Pueblos' : 'Los 78 pueblos') : it.e.t === 'l' ? 'Lugares de interés' : 'Barrios, comunidades y sectores';
       if (group !== lastGroup) { const g = document.createElement('li'); g.className = 'grp'; g.textContent = group; g.setAttribute('aria-hidden', 'true'); listEl.append(g); lastGroup = group; }
       const li = document.createElement('li'); li.setAttribute('role', 'option');
       if (k === active && s) li.classList.add('active');
@@ -1304,7 +1361,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       const kd = document.createElement('span'); kd.className = 'kind';
       if (it.kind === 'm') { nm.textContent = DATA[it.i].name; kd.textContent = DATA[it.i].id; if (it.i === selected) li.classList.add('cur'); }
       else if (it.kind === 'f') { const st = document.createElement('span'); st.className = 'star'; st.textContent = '★'; nm.append(st, it.f.name); if (it.f.t === 'b') { const sm = document.createElement('small'); sm.textContent = DATA[byId.get(it.f.m)]?.name || ''; nm.append(sm); } kd.textContent = KIND[it.f.t]; }
-      else { nm.textContent = it.e.name; const sm = document.createElement('small'); sm.textContent = DATA[byId.get(it.e.m)]?.name || ''; nm.append(sm); kd.textContent = KIND[it.e.t]; }
+      else { nm.textContent = it.e.name; const sm = document.createElement('small'); sm.textContent = DATA[byId.get(it.e.m)]?.name || ''; nm.append(sm); kd.textContent = it.e.t === 'l' ? POI_CAT[it.e.cat][0] : KIND[it.e.t]; }
       li.append(nm, kd);
       li.addEventListener('mousedown', ev => { ev.preventDefault(); choose(it); });
       if (it.kind === 'm') { li.addEventListener('mouseenter', () => setHover(it.i)); li.addEventListener('mouseleave', () => setHover(-1)); }
@@ -1316,6 +1373,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (typeof it === 'number') return select(it);
     if (it.kind === 'm') return select(it.i);
     if (it.kind === 'f') return goTo({ m: it.f.m, b: it.f.b || '' });
+    if (it.e.t === 'l') { if (!LUG.on) setPoi(true); if (!LUG.cats.has(it.e.cat)) { LUG.cats.add(it.e.cat); renderPoiCats(); buildPoiLabels(); } openPoi(it.e.p); return; }
     goTo({ m: it.e.m, b: it.e.b, t: it.e.t, name: it.e.name });
   }
   q.addEventListener('input', () => { active = 0; renderList(); });
@@ -1570,10 +1628,10 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   async function computeRoute() {
     if (!RT.a || !RT.b) return;
     RT.ctrl?.abort(); const ctrl = RT.ctrl = new AbortController(); const timer = setTimeout(() => ctrl.abort(), 15000);
-    $('r-info').textContent = 'Calculando ruta…'; $('r-sub').textContent = ''; renderProfile($('r-prof'), null);
+    $('r-info').textContent = 'Calculando ruta…'; $('r-sub').textContent = ''; renderProfile($('r-prof'), null); $('r-steps-wrap').hidden = true;
     const prof = RT.mode === 'car' ? 'routed-car' : 'routed-foot';
     try {
-      const url = `https://routing.openstreetmap.de/${prof}/route/v1/driving/${RT.a.lon.toFixed(6)},${RT.a.lat.toFixed(6)};${RT.b.lon.toFixed(6)},${RT.b.lat.toFixed(6)}?overview=full&geometries=geojson`;
+      const url = `https://routing.openstreetmap.de/${prof}/route/v1/driving/${RT.a.lon.toFixed(6)},${RT.a.lat.toFixed(6)};${RT.b.lon.toFixed(6)},${RT.b.lat.toFixed(6)}?overview=full&geometries=geojson&steps=true`;
       const r = await fetch(url, { signal: ctrl.signal });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const j = await r.json();
@@ -1595,6 +1653,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       $('r-info').textContent = `${fmt.format(rt.distance / 1000)} km · ${fmtDur(rt.duration)}`;
       $('r-sub').textContent = `↑ ${fmt0.format(Math.round(up))} m · ↓ ${fmt0.format(Math.round(dn))} m`;
       renderProfile($('r-prof'), samples);
+      renderSteps(rt.legs.flatMap(l => l.steps));
       let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9; coords.forEach(c => { x0 = Math.min(x0, c.x); x1 = Math.max(x1, c.x); y0 = Math.min(y0, c.y); y1 = Math.max(y1, c.y); });
       flyToBox({ x0: x0 - 1, x1: x1 + 1, y0: y0 - 1, y1: y1 + 1 }, 4);
     } catch (e) {
@@ -1602,16 +1661,63 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       $('r-info').textContent = !navigator.onLine ? 'Sin conexión: las rutas necesitan internet.' : e.message === 'sin-ruta' ? 'No hay ruta entre esos puntos.' : e.name === 'AbortError' ? 'El servicio de rutas tardó demasiado. Inténtalo de nuevo.' : 'No se pudo calcular la ruta. Inténtalo de nuevo.';
     } finally { clearTimeout(timer); }
   }
+  // Indicaciones en español a partir de las maniobras de OSRM
+  const MOD = { left: 'a la izquierda', right: 'a la derecha', 'slight left': 'ligeramente a la izquierda', 'slight right': 'ligeramente a la derecha',
+    'sharp left': 'bruscamente a la izquierda', 'sharp right': 'bruscamente a la derecha', straight: 'recto', uturn: 'en U' };
+  const ARROW = { left: '←', right: '→', 'slight left': '↖', 'slight right': '↗', 'sharp left': '↙', 'sharp right': '↘', straight: '↑', uturn: '↶' };
+  const ORD = ['', 'primera', 'segunda', 'tercera', 'cuarta', 'quinta', 'sexta', 'séptima', 'octava'];
+  const fmtLen = m => m < 950 ? `${Math.round(m / 10) * 10} m` : `${fmt.format(m / 1000)} km`;
+  function stepText(st) {
+    const mv = st.maneuver || {}, t = mv.type, mod = MOD[mv.modifier] || '';
+    const ref = (st.ref || '').split(';')[0].trim(), name = (st.name || '').trim();
+    const road = !ref ? name : !name || name === ref ? ref : name.includes(ref) ? name : `${name} (${ref})`;
+    const hacia = road ? ` hacia ${road}` : '', por = road ? ` por ${road}` : '';
+    switch (t) {
+      case 'depart': return `Sal${por}`;
+      case 'arrive': return mv.modifier === 'left' ? 'Llegas a tu destino, a la izquierda' : mv.modifier === 'right' ? 'Llegas a tu destino, a la derecha' : 'Llegas a tu destino';
+      case 'turn': return mv.modifier === 'uturn' ? `Da la vuelta en U${hacia}` : mv.modifier === 'straight' ? `Sigue recto${por}` : `Gira ${mod}${hacia}`;
+      case 'end of road': return `Al final de la calle, gira ${mod}${hacia}`;
+      case 'fork': return `En la bifurcación, mantente ${mod}${hacia}`;
+      case 'merge': return `Incorpórate ${mod}${road ? ` a ${road}` : ''}`;
+      case 'on ramp': return `Toma la rampa ${mod}${hacia}`;
+      case 'off ramp': return `Toma la salida ${mod}${hacia}`;
+      case 'roundabout': case 'rotary': return `En la rotonda, toma la ${ORD[mv.exit] || `salida ${mv.exit}`}${ORD[mv.exit] ? ' salida' : ''}${hacia}`;
+      case 'exit roundabout': case 'exit rotary': return `Sal de la rotonda${hacia}`;
+      default: return mv.modifier && mv.modifier !== 'straight' ? `Continúa ${mod}${por}` : `Continúa${por}`;
+    }
+  }
+  function renderSteps(steps) {
+    const ol = $('r-steps'); ol.textContent = '';
+    const list = steps.filter((st, k) => !(st.maneuver?.type === 'new name' && !st.name && !st.ref) && !(k > 0 && ['exit roundabout', 'exit rotary'].includes(st.maneuver?.type)));
+    list.forEach((st, k) => {
+      const li = document.createElement('li');
+      const ar = document.createElement('span'); ar.className = 'ar'; ar.setAttribute('aria-hidden', 'true');
+      ar.textContent = st.maneuver.type === 'arrive' ? '●' : st.maneuver.type === 'depart' ? '▲' : ['roundabout', 'rotary'].includes(st.maneuver.type) ? '↻' : (ARROW[st.maneuver.modifier] || '↑');
+      const tx = document.createElement('span'); tx.textContent = stepText(st);
+      const d = document.createElement('small'); d.textContent = st.distance > 0 ? fmtLen(st.distance) : '';
+      li.append(ar, tx, d);
+      li.addEventListener('click', () => {
+        [...ol.children].forEach(x => x.classList.toggle('on', x === li));
+        const [lo, la] = st.maneuver.location, [x, y] = proj(lo, la);
+        flyToBox({ x0: x - 0.6, x1: x + 0.6, y0: y - 0.6, y1: y + 0.6 }, 2.5);
+      });
+      ol.append(li);
+    });
+    $('r-steps-t').textContent = `Indicaciones (${list.length} pasos)`;
+    $('r-steps-wrap').hidden = !list.length;
+  }
   function addRoutePoint(x, y) {
     const [lon, lat] = unproj(x, y), pt = { x, y, lon, lat };
+    if (RT.b && !RT.a) { RT.a = pt; routeMarkers(); computeRoute(); return; }
     if (!RT.a || (RT.a && RT.b)) { clearRouteDraw(); RT.a = pt; RT.b = null; renderProfile($('r-prof'), null); $('r-info').textContent = 'Toca el destino'; $('r-sub').textContent = ''; routeMarkers(); }
     else { RT.b = pt; routeMarkers(); computeRoute(); }
     try { navigator.vibrate?.(8); } catch (e) {}
   }
   function setRoute(on) {
+    $('poi').hidden = true;
     if (on) { if (MS.on) setMeasure(false); closeSheets(); if (selected >= 0) select(-1, { fly: false }); }
     RT.on = on; $('t-route').setAttribute('aria-pressed', on); $('route').hidden = !on;
-    RT.ctrl?.abort(); RT.a = RT.b = null; clearRouteDraw(); renderProfile($('r-prof'), null);
+    RT.ctrl?.abort(); RT.a = RT.b = null; clearRouteDraw(); renderProfile($('r-prof'), null); $('r-steps-wrap').hidden = true; $('r-steps-wrap').open = false;
     $('r-info').textContent = 'Toca el punto de salida'; $('r-sub').textContent = '';
   }
   $('t-route').addEventListener('click', () => setRoute(!RT.on));
@@ -1622,12 +1728,131 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }));
   $('r-me').addEventListener('click', () => {
     if (!('geolocation' in navigator)) { note('Este navegador no permite usar la ubicación.'); return; }
-    $('r-info').textContent = 'Buscando tu ubicación…';
+    $('r-info').textContent = RT.b ? 'Buscando tu ubicación… (o toca la salida en el mapa)' : 'Buscando tu ubicación…';
     navigator.geolocation.getCurrentPosition(pos => {
       const { longitude: lon, latitude: lat } = pos.coords; setMe(lon, lat);
       RT.a = ptOf(lon, lat); routeMarkers();
       if (RT.b) computeRoute(); else $('r-info').textContent = 'Toca el destino';
-    }, err => { if (err.code === 1) showLocHelp(); else $('r-info').textContent = 'No se pudo obtener tu ubicación.'; }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+    }, err => { if (err.code === 1) showLocHelp(); $('r-info').textContent = RT.b ? 'Sin tu ubicación: toca la salida en el mapa.' : 'No se pudo obtener tu ubicación.'; }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 });
+  });
+
+  // ---------- Lugares de interés (OpenStreetMap): se muestran al acercarse, por categoría ----------
+  const POI_CAT = {
+    salud: ['Salud', '#d93a3a', '+'], farmacia: ['Farmacias', '#e0648c', 'F'], escuela: ['Escuelas', '#e8a317', 'E'], universidad: ['Universidades', '#9a6fe0', 'U'],
+    playa: ['Playas', '#1aa3c4', 'P'], hotel: ['Hoteles', '#4b6fd6', 'H'], historia: ['Historia', '#8a5a2e', 'M'], mirador: ['Miradores', '#2f9e6a', 'V'],
+    deporte: ['Deportes', '#3c9a3c', 'D'], policia: ['Policía', '#24427a', 'P'], bomberos: ['Bomberos', '#e4502a', 'B'], gobierno: ['Gobierno', '#5a6b70', 'G'], correo: ['Correo', '#1f5fa8', 'C']
+  };
+  const LUG = { on: false, list: null, loading: null, labels: [], cats: new Set(['salud', 'playa', 'historia', 'mirador', 'hotel', 'policia', 'bomberos', 'universidad']), sel: null };
+  function loadLugares() {
+    if (LUG.list || LUG.loading) return LUG.loading;
+    LUG.loading = fetch('data/lugares.json').then(r => r.ok ? r.json() : []).catch(() => []).then(a => {
+      LUG.list = a.map(e => ({ name: e[0], cat: e[1], m: e[2], b: e[3], lon: e[4], lat: e[5] })); return LUG.list;
+    });
+    return LUG.loading;
+  }
+  const poiTitle = p => p.cat === 'playa' && p.name === 'Playa' ? 'Playa' : p.name;
+  function buildPoiLabels() {
+    LUG.labels.forEach(o => o.el.remove()); LUG.labels = [];
+    if (!LUG.on || !LUG.list) return;
+    LUG.list.forEach(p => {
+      if (!LUG.cats.has(p.cat)) return;
+      const [name, color, glyph] = POI_CAT[p.cat];
+      const o = mkLabel('poi', '', p.lon, p.lat, { p });
+      const ic = document.createElement('i'); ic.textContent = glyph; o.el.style.setProperty('--c', color);
+      o.el.append(ic, poiTitle(p)); o.el.title = `${poiTitle(p)} · ${name}`;
+      o.el.addEventListener('click', ev => {
+        ev.stopPropagation();
+        const [x, y] = proj(p.lon, p.lat);
+        if (RT.on) addRoutePoint(x, y); else if (MS.on) addMeasurePoint(x, y); else openPoi(p);
+      });
+      LUG.labels.push(o);
+    });
+  }
+  function renderPoiCats() {
+    const box = $('poi-cats'); box.textContent = '';
+    Object.entries(POI_CAT).forEach(([k, [name, color]]) => {
+      const b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', LUG.cats.has(k));
+      const i = document.createElement('i'); i.style.setProperty('--c', color); b.append(i, name);
+      b.addEventListener('click', () => { LUG.cats.has(k) ? LUG.cats.delete(k) : LUG.cats.add(k); b.setAttribute('aria-pressed', LUG.cats.has(k)); buildPoiLabels(); });
+      box.append(b);
+    });
+  }
+  async function setPoi(on) {
+    LUG.on = on; $('t-poi').setAttribute('aria-pressed', on); $('poi-cats').hidden = !on;
+    if (on) { renderPoiCats(); note('Cargando lugares…', 2000); await loadLugares(); note('Acércate al mapa para ver los lugares. Toca uno para ver cómo llegar.', 4500); }
+    buildPoiLabels();
+  }
+  $('t-poi').addEventListener('click', () => setPoi(!LUG.on));
+  function openPoi(p) {
+    LUG.sel = p;
+    $('poi-cat').textContent = POI_CAT[p.cat][0];
+    $('poi-name').textContent = poiTitle(p);
+    const mu = DATA[byId.get(p.m)];
+    const bname = (BAR.fips === p.m && BAR.list.find(b => b.id === p.b)) ? barName(BAR.list.find(b => b.id === p.b)) : null;
+    $('poi-where').textContent = (bname ? `Barrio ${bname}, ` : '') + (mu ? mu.name : '');
+    if (!bname && mu) loadJSON(BAR.extra || (BAR.extra = new Map()), `data/barrios/${p.m}.json`).then(bs => {
+      const b = bs.find(x => x.id === p.b); if (b && LUG.sel === p) $('poi-where').textContent = `Barrio ${barName(b)}, ${mu.name}`; });
+    $('poi').hidden = false;
+    const [x, y] = proj(p.lon, p.lat);
+    if (camera.position.distanceTo(controls.target) > 60) flyToBox({ x0: x - 2, x1: x + 2, y0: y - 2, y1: y + 2 }, 4);
+  }
+  $('poi-close').addEventListener('click', () => { $('poi').hidden = true; LUG.sel = null; });
+  $('poi-town').addEventListener('click', () => { const p = LUG.sel; $('poi').hidden = true; if (p) goTo({ m: p.m, b: p.b, t: 'b' }); });
+  $('poi-go').addEventListener('click', () => {
+    const p = LUG.sel; if (!p) return; $('poi').hidden = true;
+    setRoute(true); RT.b = ptOf(p.lon, p.lat); routeMarkers();
+    $('r-info').textContent = `Destino: ${poiTitle(p)}. Toca la salida o usa tu ubicación.`;
+    $('r-me').click();
+  });
+
+  // ---------- Comparar dos pueblos ----------
+  const barCount = new Map();
+  async function countBarrios(id) {
+    if (barCount.has(id)) return barCount.get(id);
+    try { const r = await fetch(`data/barrios/${id}.json`); const n = r.ok ? (await r.json()).length : null; barCount.set(id, n); return n; } catch (e) { return null; }
+  }
+  const cmpSel = $('cmp-b');
+  DATA.forEach((m, i) => { const o = document.createElement('option'); o.value = i; o.textContent = m.name; cmpSel.append(o); });
+  let cmpA = -1;
+  async function renderCompare() {
+    const A = DATA[cmpA], B = DATA[+cmpSel.value]; if (!A || !B) return;
+    const [na, nb] = await Promise.all([countBarrios(A.id), countBarrios(B.id)]);
+    const den = m => m.pob != null ? m.pob / m.areaKm2 : null;
+    const rows = [
+      ['Población 2020', A.pob, B.pob, v => fmt0.format(v), 1],
+      ['Puesto por población', POP_RANK.get(A.id), POP_RANK.get(B.id), v => `#${v}`, -1],
+      ['Densidad (hab/km²)', den(A), den(B), v => fmt0.format(Math.round(v)), 1],
+      ['Viviendas', A.viv, B.viv, v => fmt0.format(v), 1],
+      ['Área terrestre (km²)', A.areaKm2, B.areaKm2, v => fmt.format(v), 1],
+      ['Altura máxima (m)', A.maxAlt, B.maxAlt, v => fmt0.format(v), 1],
+      ['Barrios', na, nb, v => fmt0.format(v), 1],
+      ['Región', A.region, B.region, v => v, 0],
+    ];
+    const t = $('cmp-table'); t.textContent = '';
+    const head = t.createTHead().insertRow(); ['', A.name, B.name].forEach(x => { const th = document.createElement('th'); th.textContent = x; head.append(th); });
+    const body = t.createTBody();
+    rows.forEach(([label, a, b, f, dir]) => {
+      const tr = body.insertRow(); tr.insertCell().textContent = label;
+      [a, b].forEach((v, k) => {
+        const td = tr.insertCell(); td.textContent = v == null ? '—' : f(v);
+        const o = k ? a : b;
+        if (dir && v != null && o != null && (dir > 0 ? v > o : v < o)) td.classList.add('win');
+      });
+    });
+  }
+  $('cmp-open').addEventListener('click', () => {
+    if (selected < 0) return;
+    cmpA = selected; $('cmp-a').textContent = DATA[cmpA].name;
+    if (+cmpSel.value === cmpA || cmpSel.dataset.a !== String(cmpA)) cmpSel.value = DATA[cmpA].nb.length ? byId.get(DATA[cmpA].nb[0]) : (cmpA + 1) % DATA.length;
+    cmpSel.dataset.a = cmpA;
+    $('cmp').hidden = false; renderCompare();
+  });
+  cmpSel.addEventListener('change', renderCompare);
+  $('cmp-close').addEventListener('click', () => { $('cmp').hidden = true; });
+  $('cmp-map').addEventListener('click', () => {
+    const a = polysBox(DATA[cmpA].polys), b = polysBox(DATA[+cmpSel.value].polys);
+    $('cmp').hidden = true; setHover(+cmpSel.value);
+    flyToBox({ x0: Math.min(a.x0, b.x0), x1: Math.max(a.x1, b.x1), y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1) }, 10);
   });
 
   // ---------- Ayuda para activar la ubicación ----------
