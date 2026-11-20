@@ -219,9 +219,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 .ib:hover { color: var(--accent); border-color: var(--accent); }
 #fav[aria-pressed="true"] { color: #e8a317; border-color: #e8a317; }
 #fav[aria-pressed="false"] svg path { fill: none; }
-#follow-pill { right: max(16px, env(safe-area-inset-right, 0px)); top: calc(132px + env(safe-area-inset-top, 0px)); z-index: 4; display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px; font: 500 13px var(--f-body); color: var(--ink); cursor: pointer; }
+#follow-pill { right: max(16px, env(safe-area-inset-right, 0px)); top: calc(132px + env(safe-area-inset-top, 0px)); z-index: 4; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 6px 0 12px; font: 500 13px var(--f-body); color: var(--ink); }
 #follow-pill .dot { width: 10px; height: 10px; border-radius: 50%; background: #1a73e8; box-shadow: 0 0 0 0 rgba(26,115,232,.55); animation: me-pulse 1.8s infinite; }
-#follow-pill b { color: #c2381a; }
+#follow-pill button { min-height: 32px; padding: 0 10px; border-radius: 8px; border: 0; background: transparent; font: 700 13px var(--f-body); cursor: pointer; }
+#fp-stop { color: #c2381a; }
+#fp-center { color: #fff; background: #1a73e8 !important; }
 @media (min-width: 641px) { #follow-pill { top: auto; right: auto; left: 50%; translate: -50% 0; bottom: var(--above-tabs); } #app.has-sel #follow-pill { left: calc(50% - 160px); } }
 #measure { left: 50%; translate: -50% 0; bottom: var(--above-tabs); z-index: 5; padding: 10px 12px; display: grid; gap: 8px; min-width: min(92vw, 320px); }
 #measure .m-row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 600 15px var(--f-body); font-variant-numeric: tabular-nums; }
@@ -371,7 +373,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <div class="lh-head"><strong id="lh-t">Activa la ubicación</strong><button id="lh-close" class="ib" type="button" aria-label="Cerrar">✕</button></div>
     <div id="lh-body"></div>
   </div>
-  <button id="follow-pill" class="panel" type="button" hidden><span class="dot" aria-hidden="true"></span>Siguiendo tu ubicación · <b>Detener</b></button>
+  <div id="follow-pill" class="panel" role="status" hidden><span class="dot" aria-hidden="true"></span><span id="fp-t">Siguiendo tu ubicación</span><button id="fp-center" type="button" hidden>Centrar</button><button id="fp-stop" type="button">Detener</button></div>
   <div id="measure" class="panel" hidden>
     <div class="m-row"><strong id="m-dist">Toca el mapa para marcar puntos</strong><span id="m-elev"></span></div>
     <div id="m-prof" class="prof" hidden></div>
@@ -1211,6 +1213,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const fmt = new Intl.NumberFormat('es-PR', { maximumFractionDigits: 1 }), fmt0 = new Intl.NumberFormat('es-PR');
   const fmtLL = ([lon, lat]) => `${lat.toFixed(3)}°N ${Math.abs(lon).toFixed(3)}°O`;
   function select(i, { fly = true } = {}) {
+    if (!GPS.internal && GPS.watch != null) { GPS.userActed = true; if (GPS.auto) setAuto(false); }
     if (i === selected && i !== -1) { if (fly) flyToMuni(i); return; }
     selected = i; uni.selId.value = i; paintIslands(); setSelLines(i);
     app.classList.toggle('has-sel', i >= 0);
@@ -1315,7 +1318,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (p.idx >= 0) select(p.idx); else if (selected >= 0) select(-1);
   });
   let lastUserMove = 0;
-  controls.addEventListener('start', () => { lastUserMove = performance.now(); if (tween) { tween = null; polarLimits(false); } tip.hidden = true; });
+  controls.addEventListener('start', () => { lastUserMove = performance.now(); if (GPS.watch != null) { GPS.userActed = true; if (GPS.auto) setAuto(false); } if (tween) { tween = null; polarLimits(false); } tip.hidden = true; });
 
   // ---------- Buscador ----------
   const q = $('q'), listEl = $('list');
@@ -1473,10 +1476,19 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     const [lx, ly] = proj(lon, lat); ME = { el, w: 0, vis: null, lx, ly, lh: hAt(lx, ly), isl: !landAt(lon, lat) };
   }
   // Primer toque: te localiza, abre tu pueblo y barrio, y empieza a seguirte. Segundo toque: deja de seguir.
-  const GPS = { watch: null, lastM: -1, lastB: '', wake: null, first: true };
+  const GPS = { watch: null, lastM: -1, lastB: '', wake: null, first: true, auto: false, internal: false, pos: null, barCache: new Map() };
   const gpsBtn = $('t-gps'), gpsLabel = () => gpsBtn.lastChild;
   function setGpsUi(on) { gpsBtn.setAttribute('aria-pressed', on); gpsLabel().textContent = on ? 'Siguiendo' : 'Ubicarme'; $('follow-pill').hidden = !on; }
-  $('follow-pill').addEventListener('click', () => stopFollow());
+  $('fp-stop').addEventListener('click', () => stopFollow());
+  // "auto": la cámara te acompaña. Se apaga cuando mueves el mapa o abres otro lugar; "Centrar" lo vuelve a encender.
+  function setAuto(on) {
+    GPS.auto = on; $('fp-center').hidden = on || GPS.watch == null;
+    $('fp-t').textContent = on ? 'Siguiendo tu ubicación' : 'Ubicación activa';
+  }
+  $('fp-center').addEventListener('click', () => {
+    setAuto(true);
+    if (GPS.pos) { const [x, y] = proj(GPS.pos.lon, GPS.pos.lat); flyToBox({ x0: x - 2.5, x1: x + 2.5, y0: y - 2.5, y1: y + 2.5 }, 4); }
+  });
   async function keepAwake(on) {
     try {
       if (on && 'wakeLock' in navigator && !GPS.wake) { GPS.wake = await navigator.wakeLock.request('screen'); GPS.wake.addEventListener('release', () => { GPS.wake = null; }); }
@@ -1488,30 +1500,45 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (GPS.watch != null) navigator.geolocation.clearWatch(GPS.watch);
     GPS.watch = null; setGpsUi(false); keepAwake(false); note('Dejé de seguir tu ubicación.');
   }
+  // Abre un pueblo/barrio por cuenta del GPS (sin que cuente como acción del usuario)
+  const gpsSelect = fn => { GPS.internal = true; try { fn(); } finally { GPS.internal = false; } };
   async function onPosition(pos) {
     const { longitude: lon, latitude: lat } = pos.coords;
     const i = DATA.findIndex(m => m.polys.some(p => insidePoly([lon, lat], p)));
     if (i < 0) { if (GPS.first) { note('Estás fuera de Puerto Rico o en el mar: no hay municipio en tu ubicación.'); stopFollow(); } return; }
+    GPS.pos = { lon, lat };
     setMe(lon, lat);
     const [x, y] = proj(lon, lat);
-    let changed = false;
-    if (selected !== i) { select(i, { fly: false }); changed = true; }
-    await BAR.ready;
-    const k = BAR.list.findIndex(b => b.polys.some(p => insidePoly([lon, lat], p)));
-    const bid = k >= 0 ? BAR.list[k].id : '';
-    if (k >= 0 && (BAR.sel !== k || changed)) { selectBarrio(k); await ZM.ready; }
-    let near = null, best = 1.5;   // sector más cercano a menos de 1.5 km
-    ZM.secs.forEach(sc => { const [sx, sy] = proj(sc.lon, sc.lat), d = Math.hypot(sx - x, sy - y); if (d < best) { best = d; near = sc; } });
+    // barrio donde estás, sin abrir nada
+    const bars = await loadJSON(GPS.barCache, `data/barrios/${DATA[i].id}.json`);
+    const bar = bars.find(b => b.polys.some(p => insidePoly([lon, lat], p)));
+    const bid = bar ? bar.id : '';
     if (GPS.first) {
-      GPS.first = false; setCompact(true);
-      flyToBox({ x0: x - 2.5, x1: x + 2.5, y0: y - 2.5, y1: y + 2.5 }, 4);
-    } else if (performance.now() - lastUserMove > 8000 && !tween) {
-      // la cámara te acompaña, salvo si acabas de mover el mapa
-      const t = new THREE.Vector3(x, controls.target.y, -y), dv = t.clone().sub(controls.target);
-      flyTo(t, camera.position.clone().add(dv), 700);
+      // primera ubicación: abre tu pueblo y tu barrio y te encuadra
+      GPS.first = false;
+      if (GPS.userActed) { setAuto(false); }   // mientras buscaba, abriste otro lugar o moviste el mapa: no te muevo
+      else {
+        gpsSelect(() => { if (selected !== i) select(i, { fly: false }); });
+        setCompact(true); flyToBox({ x0: x - 2.5, x1: x + 2.5, y0: y - 2.5, y1: y + 2.5 }, 4);
+        setAuto(true);
+        await BAR.ready;
+        const k = BAR.list.findIndex(b => b.id === bid);
+        if (k >= 0 && selected === i && !GPS.userActed) gpsSelect(() => selectBarrio(k));
+      }
+    } else if (GPS.auto) {
+      // si estás mirando tu propio pueblo y cruzas a otro pueblo o barrio, la ficha te acompaña; si no, no se abre nada
+      if (selected >= 0 && selected === GPS.lastM && i !== selected) {
+        gpsSelect(() => select(i, { fly: false })); await BAR.ready;
+        const k = BAR.list.findIndex(b => b.id === bid); if (k >= 0 && selected === i) gpsSelect(() => selectBarrio(k));
+      } else if (selected === i && BAR.fips === DATA[i].id && bid && BAR.list[BAR.sel]?.id === GPS.lastB && bid !== GPS.lastB) {
+        const k = BAR.list.findIndex(b => b.id === bid); if (k >= 0) gpsSelect(() => selectBarrio(k));
+      }
+      if (!tween) { const t = new THREE.Vector3(x, controls.target.y, -y), dv = t.clone().sub(controls.target); flyTo(t, camera.position.clone().add(dv), 700); }
     }
-    if (GPS.first === false && (i !== GPS.lastM || bid !== GPS.lastB)) {
-      note(`Estás ${near ? `cerca de ${near.name}, ` : ''}${k >= 0 ? `en el barrio ${barName(BAR.list[k])}, ` : ''}${DATA[i].name}.`, 6000);
+    if (i !== GPS.lastM || bid !== GPS.lastB) {
+      let near = null, best = 1.5;   // sector más cercano a menos de 1.5 km (si ya están cargados)
+      ZM.secs.forEach(sc => { const [sx, sy] = proj(sc.lon, sc.lat), d = Math.hypot(sx - x, sy - y); if (d < best) { best = d; near = sc; } });
+      note(`Estás ${near && BAR.list[BAR.sel]?.id === bid ? `cerca de ${near.name}, ` : ''}${bar ? `en el barrio ${barName(bar)}, ` : ''}${DATA[i].name}.`, 6000);
       GPS.lastM = i; GPS.lastB = bid;
     }
   }
@@ -1519,7 +1546,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (GPS.watch != null) { stopFollow(); return; }
     if (!('geolocation' in navigator)) { note('Este navegador no permite usar la ubicación.'); return; }
     try { const st = await navigator.permissions?.query({ name: 'geolocation' }); if (st && st.state === 'denied') { showLocHelp(); return; } } catch (e) { /* sin Permissions API */ }
-    GPS.first = true; GPS.lastM = -1; GPS.lastB = '';
+    GPS.first = true; GPS.lastM = -1; GPS.lastB = ''; GPS.pos = null; GPS.auto = false; GPS.userActed = false;
     note('Buscando tu ubicación…', 15000); setGpsUi(true); keepAwake(true);
     GPS.watch = navigator.geolocation.watchPosition(pos => { onPosition(pos); }, err => {
       if (err.code === 1) { $('note').hidden = true; showLocHelp(); }
