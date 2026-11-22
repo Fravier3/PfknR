@@ -66,6 +66,16 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - La consulta de edificios prioriza el FeatureServer OSM de ArcGIS para Caribe y Centroamérica, con reserva de Overpass si falla o viene vacío. Las peticiones se cancelan al cambiar de municipio; las alturas se leen de `height`, `building_levels` o `levels` según la fuente.
 - Los edificios requieren internet, conexión al servidor y cobertura OSM. No se generan estructuras ficticias. La representación en navegador todavía requiere prueba visual en un iPhone real.
 
+
+### Corrección v1.5.2 — terreno visible y edificios comprobados en Cayey y Loíza
+
+- Se corrigió el shader para que los identificadores de selección negativos no coloreen el terreno. En la vista urbana se ocultan temporalmente el resaltado naranja, la capa de barrios y la densidad/región, y se restauran al salir.
+- La vista 3D se acerca al barrio-pueblo, sin apuntar por debajo del relieve. Se puede volver a entrar tocando el mismo municipio.
+- Los edificios se posicionan sobre la altura máxima del suelo bajo cada huella para evitar que queden ocultos por el terreno inclinado.
+- La ficha muestra el mensaje real de carga o error y el proveedor usado, en vez de fallar silenciosamente.
+- Validación remota de ArcGIS Caribe (22 nov 2026, GitHub Actions): 750 edificios de muestra para Cayey Pueblo y 750 para Loíza Pueblo; ambas respuestas HTTP 200, CORS '*', polígonos cerrados aptos para extrusión.
+- Se agregó el proveedor ArcGIS Norteamérica como reserva y continúa Overpass si la primera fuente no devuelve resultados. **Nota:** disponibilidad de edificios no equivale a validación visual en Safari. Verificar en iPad después de publicar.
+
 ## Ciudades 3D y estilos PolyMap (v1.5.0)
 
 - En **Capas → Estilo visual** se encuentran Original, Moderno, Natural, Cyberpunk, Histórico y Escala de grises. Las paletas se adaptaron de [CottageHop/PolyMap](https://github.com/CottageHop/PolyMap) (MIT). Se conserva el relieve, el Censo, los límites y los nombres de PFKNR.
