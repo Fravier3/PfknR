@@ -20,7 +20,11 @@
 
   // Priorizamos ArcGIS FeatureServer (huellas OSM Caribe y América Central).
   // Overpass sirve de alternativa para evitar depender de un único proveedor.
-  const BUILDINGS_ARCGIS = 'https://services6.arcgis.com/Do88DoK2xjTUCXd1/ArcGIS/rest/services/OSM_CA_Buildings/FeatureServer/0/query';
+  // Dos capas OSM públicas mantenidas en ArcGIS, con Overpass como respaldo.
+  const ARCGIS_SOURCES = [
+    { name: 'ArcGIS Caribe', url: 'https://services6.arcgis.com/Do88DoK2xjTUCXd1/ArcGIS/rest/services/OSM_CA_Buildings/FeatureServer/0/query' },
+    { name: 'ArcGIS Norteamérica', url: 'https://services6.arcgis.com/Do88DoK2xjTUCXd1/ArcGIS/rest/services/OSM_NA_Buildings/FeatureServer/0/query' }
+  ];
   const SOURCES = [
     'https://overpass.private.coffee/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter'
@@ -76,7 +80,7 @@
     return out;
   }
 
-  async function queryArcgis(lat, lon, signal) {
+  async function queryArcgis(source, lat, lon, signal) {
     // +/- 700 m; FeatureServer admite hasta 2000 registros y geoJSON.
     const dx = 0.007, dy = 0.0063;
     const bbox = [lon-dx,lat-dy,lon+dx,lat+dy].map(v => v.toFixed(6)).join(',');
@@ -86,8 +90,10 @@
       outFields: 'osm_id2,building,height,building_levels,levels,name',
       returnGeometry: 'true', resultRecordCount: '750', f: 'geojson'
     });
-    const payload = await getJSONWithTimeout(BUILDINGS_ARCGIS + '?' + query, signal, 12500);
-    return arcgisToWays(payload);
+    const payload = await getJSONWithTimeout(source.url + '?' + query, signal, 10000);
+    const features = arcgisToWays(payload);
+    features.source = source.name;
+    return features;
   }
 
   async function loadBuildings(lat, lon, opts) {
@@ -96,12 +102,15 @@
       throw new Error('La consulta está fuera del mapa de Puerto Rico');
     }
     let error;
-    try {
-      const ways = await queryArcgis(lat,lon,signal);
-      if (ways.length) return ways;
-    } catch (e) {
-      if (signal && signal.aborted) throw e;
-      error = e;
+    for (const source of ARCGIS_SOURCES) {
+      if (signal && signal.aborted) throw new DOMException('Cancelado', 'AbortError');
+      try {
+        const ways = await queryArcgis(source,lat,lon,signal);
+        if (ways.length) return ways;
+      } catch(e) {
+        if (signal && signal.aborted) throw e;
+        error = new Error(source.name + ': ' + (e.message || e));
+      }
     }
     const query = '[out:json][timeout:10];way["building"](around:700,' +
       lat.toFixed(6) + ',' + lon.toFixed(6) + ');out geom;';
@@ -111,7 +120,7 @@
         const json = await getJSONWithTimeout(endpoint + '?data=' + encodeURIComponent(query), signal, 11000);
         if (!Array.isArray(json.elements)) throw new Error('Respuesta OSM inválida');
         const ways = json.elements.filter(e => e.type === 'way' && Array.isArray(e.geometry) && e.geometry.length >= 4);
-        if (ways.length) return ways;
+        if (ways.length) { ways.source = 'Overpass'; return ways; }
       } catch (e) {
         if (signal && signal.aborted) throw e;
         error = e;
@@ -148,9 +157,13 @@
       if (Math.abs(first.lat - last.lat) > 1e-6 || Math.abs(first.lon - last.lon) > 1e-6) continue;
       const points = geo.slice(0, -1).map(p => project(p.lon, p.lat));
       if (points.length < 3 || points.some(p => !Number.isFinite(p[0]) || !Number.isFinite(p[1]))) continue;
-      let x = 0, y = 0;
-      for (const p of points) { x += p[0]; y += p[1]; }
+      let x = 0, y = 0, ground = 0;
+      for (const p of points) {
+        x += p[0]; y += p[1];
+        ground = Math.max(ground, groundAt(p[0],p[1]) || 0);
+      }
       x /= points.length; y /= points.length;
+      ground = Math.max(ground,groundAt(x,y) || 0);
       const shape = new THREE.Shape();
       points.forEach((p, i) => i ? shape.lineTo(p[0] - x, p[1] - y) : shape.moveTo(p[0] - x, p[1] - y));
       shape.closePath();
@@ -158,7 +171,7 @@
       const geometry = new THREE.ExtrudeGeometry(shape, { depth: heightKm, bevelEnabled: false, steps: 1, curveSegments: 1 });
       geometry.rotateX(-Math.PI / 2);
       const mesh = new THREE.Mesh(geometry, mat);
-      mesh.position.set(x, Math.max(0, groundAt(x, y)) + 0.003, -y);
+      mesh.position.set(x, ground + 0.002, -y);
       mesh.receiveShadow = true;
       mesh.castShadow = false; // Ahorra memoria y GPU en iPhone.
       mesh.frustumCulled = true;
