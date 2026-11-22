@@ -1036,7 +1036,19 @@ button { touch-action: manipulation; }
     // Eliminar todos los tintes de selección al entrar al nivel de ciudad.
     urbanSurface(true);
     const pueblo=BAR.list.find(b=>b.pueblo && Array.isArray(b.label));
-    const [lon,lat]=pueblo?.label || DATA[i].label;
+    // Algunos centros (p. ej. Ponce) se componen de varios barrios
+    // Primero/Segundo/Tercero y no tienen marca de barrio-pueblo.
+    const central=BAR.list.filter(b=>
+      /^(primero|segundo|tercero|cuarto|quinto|sexto|séptimo|septimo|octavo|noveno|décimo|decimo)$/i.test(b.name||'') &&
+      Array.isArray(b.label));
+    const urbano=BAR.list.filter(b=>/urbano|pueblo|casco|centro/i.test(b.name||'')&&Array.isArray(b.label));
+    const numberedCenter=central.length>=3
+      ? [central.reduce((a,b)=>a+b.label[0],0)/central.length,
+         central.reduce((a,b)=>a+b.label[1],0)/central.length]
+      : null;
+    const urbanDense=urbano.sort((a,b)=>
+      (b.pob||0)/Math.max(.1,b.areaKm2||1)-(a.pob||0)/Math.max(.1,a.areaKm2||1))[0];
+    const [lon,lat]=pueblo?.label || numberedCenter || urbanDense?.label || DATA[i].label;
     const [x,y]=proj(lon,lat);
     // Cámara cercana sobre un núcleo urbano: la vista de todo el municipio
     // es demasiado distante para apreciar edificios de 7-15 metros.
