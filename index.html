@@ -291,6 +291,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 #poly-status[hidden] { display:none; }
 #t-buildings-refresh { font-size:12px; }
 
+/* Acceso visible a ciudad 3D incluso con ficha compacta; no utiliza blur. */
+#city-3d { display:block; width:100%; min-height:39px; padding:9px 12px;
+  border:1px solid #0b3a52; border-radius:9px; background:#0b3a52; color:#fff;
+  font:600 13px/1.25 var(--f-body); cursor:pointer; touch-action:manipulation; }
+#city-3d:focus-visible { outline:2px solid #e4502a; outline-offset:3px; }
+#city-3d[disabled] { opacity:.5; cursor:not-allowed; }
+
+
 </style>
 <style>
 /* La app ocupa exactamente la pantalla visible; las zonas seguras (notch, barra inferior) las respetan los paneles */
@@ -326,6 +334,7 @@ button { touch-action: manipulation; }
       <div class="hbtns"><button id="fav" class="ib" type="button" aria-pressed="false" aria-label="Guardar en favoritos"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button><button id="share" class="ib" type="button" aria-label="Compartir enlace"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v6.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V12"/></svg></button><button id="more" type="button" aria-expanded="false">Detalles</button><button id="close" type="button" aria-label="Cerrar ficha">✕</button></div>
     </div>
     <p class="sum" id="i-sum"></p>
+    <button id="city-3d" type="button">Ver ciudad y edificios en 3D</button>
     <p class="wx" id="i-wx" hidden></p>
     <dl class="stats">
       <div><dt>Población 2020</dt><dd id="i-pob"></dd></div>
@@ -955,24 +964,42 @@ button { touch-action: manipulation; }
     } finally { if (ticket===URBAN.request) URBAN.abort=null; }
   }
 
+  // Utilizamos barrio-pueblo, no el centro geográfico del municipio:
+  // p.ej. Cayey Pueblo [-66.1713, 18.11196] en la base PFKNR.
+  async function showUrbanForSelected() {
+    if (!URBAN.on || selected<0 || !POLY) return;
+    const i=selected;
+    urbanStatus.hidden=false;
+    urbanStatus.textContent='Localizando centro urbano de '+DATA[i].name+'…';
+    try { await BAR.ready; } catch(e) { /* si falla la ficha, usar centro municipal */ }
+    if (selected!==i || !URBAN.on) return;
+    const pueblo=BAR.list.find(b=>b.pueblo && Array.isArray(b.label));
+    const [lon,lat]=pueblo?.label || DATA[i].label;
+    const [x,y]=proj(lon,lat);
+    // Cámara cercana sobre un núcleo urbano: la vista de todo el municipio
+    // es demasiado distante para apreciar edificios de 7-15 metros.
+    const target=new THREE.Vector3(x,hAt(x,y),-y);
+    flyTo(target,target.clone().add(viewDir().multiplyScalar(.82)),1000);
+    loadUrbanAt(lat,lon);
+  }
+
   function setUrbanMode(on) {
     if (on && selected<0) {
       note('Selecciona un pueblo y luego activa Edificios 3D.',4200);
       return;
     }
+    if (on===URBAN.on) { if (on) showUrbanForSelected(); return; }
     URBAN.on=on;
     urbanButton.setAttribute('aria-pressed',String(on));
     urbanRefresh.hidden=!on;
     if (on) {
+      URBAN.oldExag=EXS;
       if (!is3D) $('t-3d').click();
-      URBAN.oldExag = EXS;
-      camera.near=.05; camera.far=1800; camera.updateProjectionMatrix();
-      controls.minDistance=.2;
+      if (solid) $('t-solid').click();
+      camera.near=.015; camera.far=1800; camera.updateProjectionMatrix();
+      controls.minDistance=.15;
       setExag(1); $('t-exag').value='1';
-      const [lon,lat]=DATA[selected].label, [x,y]=proj(lon,lat);
-      const target=new THREE.Vector3(x,hAt(x,y),-y);
-      flyTo(target,target.clone().add(viewDir().multiplyScalar(.95)),1050);
-      loadUrbanAt(lat,lon);
+      showUrbanForSelected();
     } else {
       clearUrban(); urbanStatus.hidden=true;
       camera.near=2; camera.far=6000; camera.updateProjectionMatrix();
@@ -984,8 +1011,13 @@ button { touch-action: manipulation; }
   }
   urbanButton.addEventListener('click',()=> { if (POLY) setUrbanMode(!URBAN.on); });
   urbanRefresh.addEventListener('click',()=> {
+    if (!URBAN.on) return;
     const [lon,lat]=unproj(controls.target.x,-controls.target.z);
     loadUrbanAt(lat,lon);
+  });
+  $('city-3d').disabled=!POLY;
+  $('city-3d').addEventListener('click',()=> {
+    if (POLY && selected>=0) { setUrbanMode(true); closeSheets(); }
   });
 
   // ---------- Etiquetas ----------
@@ -1389,7 +1421,7 @@ button { touch-action: manipulation; }
     showWeather(m);
     LINKX = null; syncHash(); updateFav();
     if (fly) flyToMuni(i);
-    if (URBAN.on) loadUrbanAt(m.label[1],m.label[0]);
+    if (URBAN.on) showUrbanForSelected();
     dispatch(m);
   }
   function dispatch(m) { window.dispatchEvent(new CustomEvent('municipio:select', { detail: m ? { id: m.id, name: m.name } : null })); }
@@ -2087,6 +2119,8 @@ button { touch-action: manipulation; }
   toggle('t-spin', on => { controls.autoRotate = on; });
   toggle('t-3d', on => {
     is3D = on; applyControlMode(); setHint();
+    if (on && selected>=0 && !URBAN.on && POLY) setUrbanMode(true);
+    else if (!on && URBAN.on) setUrbanMode(false);
     if (URBAN.group) URBAN.group.visible = on && !solid;
     $('t-spin').hidden = !on; if (!on) $('t-spin').setAttribute('aria-pressed', false);
     $('t-exag-wrap').hidden = !on || solid;
