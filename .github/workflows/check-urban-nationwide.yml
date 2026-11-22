@@ -1,0 +1,20 @@
+name: Verificar datos urbanos de Puerto Rico completo
+on:
+  push:
+    paths:
+      - 'scripts/check-urban-nationwide.mjs'
+      - '.github/workflows/check-urban-nationwide.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Comprobar edificios, calles y áreas verdes en 9 zonas
+        run: node scripts/check-urban-nationwide.mjs
