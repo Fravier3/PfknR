@@ -149,6 +149,7 @@
     };
     const ordered = ways.slice().sort((a, b) => dist2(a) - dist2(b));
     let count = 0;
+    const centers = [];
     for (const way of ordered) {
       if (count >= maxBuildings) break;
       const geo = way.geometry;
@@ -176,9 +177,31 @@
       mesh.castShadow = false; // Ahorra memoria y GPU en iPhone.
       mesh.frustumCulled = true;
       group.add(mesh);
+      centers.push({x,y,ground});
       count++;
     }
-    return { group, count };
+    // Elegir la concentración REAL de edificios, no el punto arbitrario
+    // del barrio-pueblo. De lo contrario, en Cayey la cámara mostraba
+    // terreno vacío y dejaba los edificios fuera de pantalla.
+    let focus = null;
+    if (centers.length) {
+      const radius2 = .22 * .22;
+      let best = [], bestDist = Infinity;
+      for (let i=0;i<centers.length;i+=Math.max(1,Math.floor(centers.length/125))) {
+        const c = centers[i];
+        const near = centers.filter(p => (p.x-c.x)**2 + (p.y-c.y)**2 <= radius2);
+        const dist = (c.x-project(cLon,cLat)[0])**2 + (c.y-project(cLon,cLat)[1])**2;
+        if (near.length>best.length || (near.length===best.length && dist<bestDist)) {
+          best = near; bestDist=dist;
+        }
+      }
+      if (best.length<4) best=centers;
+      const fx = best.reduce((t,p)=>t+p.x,0)/best.length;
+      const fy = best.reduce((t,p)=>t+p.y,0)/best.length;
+      const ground = Math.max(...best.map(p=>p.ground));
+      focus={x:fx,y:fy,ground,clusterCount:best.length};
+    }
+    return { group, count, focus };
   }
 
   function disposeGroup(group) {
