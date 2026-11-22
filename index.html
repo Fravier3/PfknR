@@ -391,6 +391,7 @@ button { touch-action: manipulation; }
       <option value="greyscale">Escala de grises</option>
     </select>
     <button id="t-buildings" class="row sw-row" type="button" aria-pressed="false">Edificios 3D · PolyMap</button>
+    <button id="t-urban-details" class="row sw-row" type="button" aria-pressed="true">Calles, parques y árboles</button>
     <button id="t-buildings-refresh" class="row" type="button" hidden>Actualizar edificios de esta zona</button>
     <small id="poly-status" role="status" aria-live="polite" hidden></small>
 
@@ -443,6 +444,7 @@ button { touch-action: manipulation; }
 <script src="libs/OrbitControls.js"></script>
 <script src="libs/motion.js"></script>
 <script src="js/polymap-urban.js"></script>
+<script src="js/polymap-detail.js"></script>
 <script>
 (async () => {
   'use strict';
@@ -903,7 +905,9 @@ button { touch-action: manipulation; }
 
   // ---------- PolyMap: paletas MIT + edificios de OpenStreetMap 3D ----------
   const POLY = window.PolyUrban;
-  const URBAN = { on:false, group:null, request:0, abort:null, oldExag:4 };
+  const DETAIL = window.PolyDetail;
+  const URBAN = { on:false, group:null, detailGroup:null, detailsEnabled:true, request:0, abort:null, oldExag:4, buildings:[] };
+  const detailButton=$('t-urban-details');
   const stylePicker = $('pm-style'), urbanButton = $('t-buildings');
   const urbanRefresh = $('t-buildings-refresh'), urbanStatus = $('poly-status');
   const cityStatus = $('city-3d-status');
@@ -954,14 +958,18 @@ button { touch-action: manipulation; }
     URBAN.request++;
     URBAN.abort?.abort(); URBAN.abort = null;
     if (URBAN.group) POLY.disposeGroup(URBAN.group);
-    URBAN.group = null;
+    if (URBAN.detailGroup && DETAIL) DETAIL.dispose(URBAN.detailGroup);
+    URBAN.group = null; URBAN.detailGroup=null; URBAN.buildings=[];
   }
   async function loadUrbanAt(lat,lon) {
     if (!URBAN.on || !POLY || !is3D) return;
     clearUrban();
     const ticket = URBAN.request, ctrl = new AbortController();
     URBAN.abort = ctrl;
-    cityMessage('Buscando edificios reales en OpenStreetMap…');
+    cityMessage('Descargando edificios, calles y zonas verdes…');
+    // Las vías y las zonas verdes se solicitan por coordenadas,
+    // por lo que funciona en todos los 78 municipios, incluyendo las islas.
+    const detailsRequest = DETAIL ? DETAIL.load(lat,lon,ctrl.signal) : Promise.resolve(null);
     try {
       const ways = await POLY.loadBuildings(lat,lon,{signal:ctrl.signal});
       if (ticket!==URBAN.request || !URBAN.on) return;
@@ -969,8 +977,27 @@ button { touch-action: manipulation; }
         center:{lat,lon},maxBuildings:small?220:450,color:POLY.THEMES[polyStyle].building});
       if (ticket!==URBAN.request || !URBAN.on) { POLY.disposeGroup(result.group); return; }
       URBAN.group = result.group;
+      URBAN.buildings = ways;
       URBAN.group.visible = is3D && !solid;
       exGroup.add(URBAN.group);
+      detailsRequest.then(features => {
+        if (ticket!==URBAN.request || !URBAN.on || !features || !DETAIL) return;
+        if(URBAN.detailGroup)DETAIL.dispose(URBAN.detailGroup);
+        if (!URBAN.detailsEnabled) return;
+        const context=DETAIL.make({
+          THREE,features,groundAt:hAt,project:proj,center:{lat,lon},
+          buildings:URBAN.buildings,small,style:polyStyle
+        });
+        URBAN.detailGroup=context.group;
+        URBAN.detailGroup.visible=is3D&&!solid;
+        exGroup.add(URBAN.detailGroup);
+        cityMessage(result.count + ' edificios 3D · '+context.roads+
+          ' vías reales · '+context.parks+' zonas verdes · '+context.trees+
+          ' árboles ilustrativos.');
+      }).catch(e=>{
+        if(ticket===URBAN.request && URBAN.on && !ctrl.signal.aborted)
+          cityMessage(result.count+' edificios 3D · Calles/vegetación no disponibles: '+String(e.message||e).slice(0,80));
+      });
       urbanSurface(true);
       if (result.focus && result.count) {
         // Reencuadre en la concentración real de estructuras.
@@ -1043,6 +1070,13 @@ button { touch-action: manipulation; }
     }
   }
   urbanButton.addEventListener('click',()=> { if (POLY) setUrbanMode(!URBAN.on); });
+  detailButton.disabled=!DETAIL;
+  detailButton.addEventListener('click',()=>{
+    URBAN.detailsEnabled=!URBAN.detailsEnabled;
+    detailButton.setAttribute('aria-pressed',String(URBAN.detailsEnabled));
+    if(URBAN.detailGroup) URBAN.detailGroup.visible=URBAN.detailsEnabled&&is3D&&!solid;
+    else if(URBAN.detailsEnabled&&URBAN.on) showUrbanForSelected();
+  });
   urbanRefresh.addEventListener('click',()=> {
     if (!URBAN.on) return;
     const [lon,lat]=unproj(controls.target.x,-controls.target.z);
@@ -2155,6 +2189,7 @@ button { touch-action: manipulation; }
     if (on && selected>=0 && !URBAN.on && POLY) setUrbanMode(true);
     else if (!on && URBAN.on) setUrbanMode(false);
     if (URBAN.group) URBAN.group.visible = on && !solid;
+    if (URBAN.detailGroup) URBAN.detailGroup.visible = on && !solid && URBAN.detailsEnabled;
     $('t-spin').hidden = !on; if (!on) $('t-spin').setAttribute('aria-pressed', false);
     $('t-exag-wrap').hidden = !on || solid;
     const d = camera.position.distanceTo(controls.target);
@@ -2164,6 +2199,7 @@ button { touch-action: manipulation; }
   toggle('t-solid', on => {
     solid = on; uni.solidOn.value = on ? 1 : 0; waterU.uSolid.value = on ? 1 : 0;
     if (URBAN.group) URBAN.group.visible = !on && is3D;
+    if (URBAN.detailGroup) URBAN.detailGroup.visible = !on && is3D && URBAN.detailsEnabled;
     setExag(EXS);
     // en plano las líneas se dibujan siempre encima (no hay montañas que las tapen)
     lineMats.forEach(m => { m.depthTest = !on; m.needsUpdate = true; });
