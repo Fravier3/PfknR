@@ -133,11 +133,18 @@
   function makeGroup(options) {
     const { ways, THREE, project, groundAt, center, maxBuildings, color } = options;
     const group = new THREE.Group();
+    // Fachadas separadas de techos: las huellas y alturas son las del servicio,
+    // pero los materiales son visualización ilustrativa, no fotografía real.
+    const roofColor = new THREE.Color(color || THEMES.original.building);
     const mat = new THREE.MeshStandardMaterial({
-      color: color || THEMES.original.building, roughness: 0.82,
-      metalness: 0.06, side: THREE.DoubleSide
+      color: roofColor, roughness: 0.86, metalness: 0, side: THREE.DoubleSide
+    });
+    const wallMat = new THREE.MeshStandardMaterial({
+      color: roofColor.clone().multiplyScalar(0.72),
+      roughness: 0.93, metalness: 0, side: THREE.DoubleSide
     });
     group.userData.polyUrbanMaterial = mat;
+    group.userData.polyUrbanWallMaterial = wallMat;
     if (!Array.isArray(ways)) return { group, count: 0 };
     const cLat = center.lat, cLon = center.lon;
     const dist2 = way => {
@@ -171,7 +178,7 @@
       const heightKm = meters(way.tags) / 1000;
       const geometry = new THREE.ExtrudeGeometry(shape, { depth: heightKm, bevelEnabled: false, steps: 1, curveSegments: 1 });
       geometry.rotateX(-Math.PI / 2);
-      const mesh = new THREE.Mesh(geometry, mat);
+      const mesh = new THREE.Mesh(geometry, [mat, wallMat]);
       mesh.position.set(x, ground + 0.002, -y);
       mesh.receiveShadow = true;
       mesh.castShadow = false; // Ahorra memoria y GPU en iPhone.
@@ -209,6 +216,7 @@
     group.parent && group.parent.remove(group);
     group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
     if (group.userData.polyUrbanMaterial) group.userData.polyUrbanMaterial.dispose();
+    if (group.userData.polyUrbanWallMaterial) group.userData.polyUrbanWallMaterial.dispose();
   }
 
   root.PolyUrban = Object.freeze({ THEMES, meters, loadBuildings, makeGroup, disposeGroup });
