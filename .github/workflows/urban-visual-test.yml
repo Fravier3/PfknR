@@ -4,6 +4,12 @@ on:
     paths:
       - '.github/workflows/urban-visual-test.yml'
       - 'scripts/urban-visual-test.mjs'
+      - 'src/app.html'
+      - 'index.html'
+      - 'js/polymap-detail.js'
+      - 'js/polymap-urban.js'
+      - 'sw.js'
+      - 'version.json'
   workflow_dispatch:
 permissions:
   contents: read
