@@ -135,16 +135,18 @@
     const group = new THREE.Group();
     // Fachadas separadas de techos: las huellas y alturas son las del servicio,
     // pero los materiales son visualización ilustrativa, no fotografía real.
-    const roofColor = new THREE.Color(color || THEMES.original.building);
-    const mat = new THREE.MeshStandardMaterial({
-      color: roofColor, roughness: 0.86, metalness: 0, side: THREE.DoubleSide
-    });
-    const wallMat = new THREE.MeshStandardMaterial({
-      color: roofColor.clone().multiplyScalar(0.72),
-      roughness: 0.93, metalness: 0, side: THREE.DoubleSide
-    });
-    group.userData.polyUrbanMaterial = mat;
-    group.userData.polyUrbanWallMaterial = wallMat;
+    // Una paleta compartida entre construcciones: el material es ILUSTRATIVO.
+    // Cada construcción conserva su polígono y altura; no inventa edificios.
+    const roofMats = [], wallMats = [];
+    for (let i=0;i<6;i++) {
+      roofMats.push(new THREE.MeshStandardMaterial({roughness:.86,metalness:0,side:THREE.DoubleSide}));
+      wallMats.push(new THREE.MeshStandardMaterial({roughness:.93,metalness:0,side:THREE.DoubleSide}));
+    }
+    group.userData.polyUrbanMaterials = {roofMats,wallMats};
+    // Se mantiene compatibilidad con la lógica existente de estilos de PFKNR.
+    group.userData.polyUrbanMaterial=roofMats[0];
+    group.userData.polyUrbanWallMaterial=wallMats[0];
+    recolorGroup(group,color || THEMES.original.building);
     if (!Array.isArray(ways)) return { group, count: 0 };
     const cLat = center.lat, cLon = center.lon;
     const dist2 = way => {
@@ -178,7 +180,12 @@
       const heightKm = meters(way.tags) / 1000;
       const geometry = new THREE.ExtrudeGeometry(shape, { depth: heightKm, bevelEnabled: false, steps: 1, curveSegments: 1 });
       geometry.rotateX(-Math.PI / 2);
-      const mesh = new THREE.Mesh(geometry, [mat, wallMat]);
+      const id=String(way.id||way.tags?.osm_id2||way.tags?.objectid||count);
+      let hash=0;
+      for(let i=0;i<id.length;i++)hash=(Math.imul(hash,31)+id.charCodeAt(i))|0;
+      const kind=String(way.tags?.building||'');
+      const variation=kind==='industrial'?2:kind==='commercial'?4:Math.abs(hash)%6;
+      const mesh = new THREE.Mesh(geometry, [roofMats[variation],wallMats[variation]]);
       mesh.position.set(x, ground + 0.002, -y);
       mesh.receiveShadow = true;
       mesh.castShadow = false; // Ahorra memoria y GPU en iPhone.
@@ -211,13 +218,29 @@
     return { group, count, focus };
   }
 
+  function recolorGroup(group, color) {
+    const data=group?.userData?.polyUrbanMaterials;
+    if(!data)return;
+    const base = new THREE.Color(color);
+    // Blancos de cemento, tejas terracota, metal gris y otros tonos genéricos.
+    // No representan acabados observados de cada edificio.
+    const roofColors=['#e4dfd2','#ae755d','#c9c8c0','#c7a780','#8c9598','#d7be99'];
+    const wallColors=['#f4e9d5','#eee0d4','#f6e7d6','#ead9c0','#e6e2d9','#e5d8c6'];
+    data.roofMats.forEach((m,i)=>m.color.copy(base).lerp(new THREE.Color(roofColors[i]),.85));
+    data.wallMats.forEach((m,i)=>m.color.copy(base).lerp(new THREE.Color(wallColors[i]),.86));
+  }
+
   function disposeGroup(group) {
     if (!group) return;
     group.parent && group.parent.remove(group);
     group.traverse(o => { if (o.geometry) o.geometry.dispose(); });
-    if (group.userData.polyUrbanMaterial) group.userData.polyUrbanMaterial.dispose();
-    if (group.userData.polyUrbanWallMaterial) group.userData.polyUrbanWallMaterial.dispose();
+    const data=group.userData.polyUrbanMaterials;
+    if(data) [...data.roofMats,...data.wallMats].forEach(m=>m.dispose());
+    else {
+      group.userData.polyUrbanMaterial?.dispose();
+      group.userData.polyUrbanWallMaterial?.dispose();
+    }
   }
 
-  root.PolyUrban = Object.freeze({ THEMES, meters, loadBuildings, makeGroup, disposeGroup });
+  root.PolyUrban = Object.freeze({ THEMES, meters, loadBuildings, makeGroup, disposeGroup, recolorGroup });
 })(window);
