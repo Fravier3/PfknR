@@ -48,7 +48,7 @@ try {
     return {width:c.width,height:c.height,webgl:!!(c.getContext('webgl2')||c.getContext('webgl'))};
   });
   console.log('RENDERER '+JSON.stringify(gl));
-  for (const town of ['Cayey','Loíza','Ponce']) {
+  for (const town of ['Cayey','Loíza','Ponce','Vieques','Culebra']) {
     const selection=await page.evaluate(town=>window.PRMap.select(town),town);
     if(selection<0) throw Error('No se encontró pueblo '+town);
     await page.waitForFunction(name=>document.querySelector('#i-name')?.textContent===name,town,{timeout:15000});
@@ -76,7 +76,7 @@ try {
   if(results.some(x=>x.metric.colors16<30)) throw Error('Canvas parece tener superficie de color uniforme');
   if(results.some(x=>x.metric.roofPixels<30)) throw Error('Edificios no aparecen en el área principal del mapa (cámara mal encuadrada)');
   if(errors.some(x=>/ReferenceError|TypeError|SyntaxError|INVALID_OPERATION/.test(x)))throw Error('Errores JS durante la prueba');
-  console.log('RESULT: PASS. Edificios, vías y árboles cargados en Cayey, Loíza y Ponce.');
+  console.log('RESULT: PASS. Edificios, vías y vegetación cargados en cinco regiones de Puerto Rico.');
 } catch(e){
   console.error('RESULT: FAIL '+e.stack);
   throw e;
