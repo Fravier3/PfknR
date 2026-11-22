@@ -906,7 +906,7 @@ button { touch-action: manipulation; }
   // ---------- PolyMap: paletas MIT + edificios de OpenStreetMap 3D ----------
   const POLY = window.PolyUrban;
   const DETAIL = window.PolyDetail;
-  const URBAN = { on:false, group:null, detailGroup:null, detailsEnabled:true, request:0, abort:null, oldExag:4, buildings:[] };
+  const URBAN = { on:false, group:null, detailGroup:null, detailsEnabled:true, request:0, abort:null, oldExag:4, buildings:[], lastCenter:null, nextAutoAt:0 };
   const detailButton=$('t-urban-details');
   // Las islas municipio tienen una tapa topográfica a ISL_H.
   // Elevar solo estos detalles urbanos evita que calles/edificios queden ocultos.
@@ -966,10 +966,14 @@ button { touch-action: manipulation; }
     if (URBAN.group) POLY.disposeGroup(URBAN.group);
     if (URBAN.detailGroup && DETAIL) DETAIL.dispose(URBAN.detailGroup);
     URBAN.group = null; URBAN.detailGroup=null; URBAN.buildings=[];
+    URBAN.lastCenter=null;
   }
   async function loadUrbanAt(lat,lon) {
     if (!URBAN.on || !POLY || !is3D) return;
     clearUrban();
+    const xy=proj(lon,lat);
+    URBAN.lastCenter=xy;
+    URBAN.nextAutoAt=performance.now()+12000;
     const ticket = URBAN.request, ctrl = new AbortController();
     URBAN.abort = ctrl;
     cityMessage('Descargando edificios, calles y zonas verdes…');
@@ -2301,6 +2305,17 @@ button { touch-action: manipulation; }
       if (k >= 1) { tween = null; polarLimits(false); }
     }
     controls.update();
+    // Carga incremental al explorar otros sectores de cualquier municipio,
+    // sin recargar la isla completa ni consultar mientras la cámara anima.
+    if(URBAN.on && !tween && URBAN.lastCenter && performance.now()>URBAN.nextAutoAt){
+      const d=Math.hypot(controls.target.x-URBAN.lastCenter[0],
+        -controls.target.z-URBAN.lastCenter[1]);
+      if(d>.55){
+        const [lo,la]=unproj(controls.target.x,-controls.target.z);
+        URBAN.nextAutoAt=performance.now()+16000;
+        if(landAt(lo,la))loadUrbanAt(la,lo);
+      }
+    }
     // no dejar que el mapa se vaya fuera de la pantalla al arrastrar
     const tg = controls.target, cx = THREE.MathUtils.clamp(tg.x, -175, 180), cz = THREE.MathUtils.clamp(tg.z, -95, 95);
     if (cx !== tg.x || cz !== tg.z) { camera.position.x += cx - tg.x; camera.position.z += cz - tg.z; tg.x = cx; tg.z = cz; }
