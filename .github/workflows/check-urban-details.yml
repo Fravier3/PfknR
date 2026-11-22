@@ -1,0 +1,20 @@
+name: Comprobar calles y vegetación OSM PR
+on:
+  push:
+    paths:
+      - 'scripts/check-urban-details.mjs'
+      - '.github/workflows/check-urban-details.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Consultar carreteras y vegetación verdaderas
+        run: node scripts/check-urban-details.mjs
