@@ -973,6 +973,8 @@ button { touch-action: manipulation; }
     urbanStatus.textContent='Localizando centro urbano de '+DATA[i].name+'…';
     try { await BAR.ready; } catch(e) { /* si falla la ficha, usar centro municipal */ }
     if (selected!==i || !URBAN.on) return;
+    // A nivel de calle se mantiene el relieve sin el relleno de colores de barrios.
+    uni.barOn.value=0;
     const pueblo=BAR.list.find(b=>b.pueblo && Array.isArray(b.label));
     const [lon,lat]=pueblo?.label || DATA[i].label;
     const [x,y]=proj(lon,lat);
@@ -1002,6 +1004,7 @@ button { touch-action: manipulation; }
       showUrbanForSelected();
     } else {
       clearUrban(); urbanStatus.hidden=true;
+      uni.barOn.value = BAR.list.length ? 1 : 0;
       camera.near=2; camera.far=6000; camera.updateProjectionMatrix();
       controls.minDistance=8;
       setExag(URBAN.oldExag); $('t-exag').value=String(URBAN.oldExag);
