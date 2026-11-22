@@ -86,7 +86,13 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - Datos externos: ArcGIS Caribe/OpenStreetMap validó hasta 750 huellas cerradas en Cayey y Loíza con acceso CORS; algunos edificios usan altura aproximada por falta de etiqueta OSM.
 
 
-### Nuevas capas urbanas de todo Puerto Rico (v1.6.0)
+### Capas urbanas de todo Puerto Rico (v1.6.2)
+
+**Cambios de la versión 1.6.2:** tejados y fachadas con seis combinaciones de colores ilustrativas para diferenciar construcciones sin inventar edificios; se conservan las huellas OSM. Carreteras, parques y árboles por zona, reencuadre urbano mejorado y corrección para municipios con centros urbanos sin etiqueta de barrio-pueblo (Ponce). La PWA y su service worker usan caché 1.6.2.
+
+**Validaciones:** sintaxis y generación exacta de HTML; 9 municipios representativos de Puerto Rico, Vieques y Culebra con consultas correctas a edificios, carreteras y usos de suelo. Prueba de navegador con captura de Cayey, Loíza y Ponce disponible en GitHub Actions. El detalle de los edificios es una visualización estilizada, **no fotografía ni reconstrucción exacta de techos y materiales**.
+
+
 
 La vista urbana se genera **por zona geográfica**, así que los 78 municipios, Vieques y Culebra utilizan el mismo sistema sin duplicar código ni cargar toda la isla. Al seleccionar un municipio y pulsar **Ver ciudad y edificios en 3D** se consulta el área de su barrio-pueblo y se dibujan:
 
