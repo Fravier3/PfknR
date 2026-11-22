@@ -143,6 +143,7 @@
       wallMats.push(new THREE.MeshStandardMaterial({roughness:.93,metalness:0,side:THREE.DoubleSide}));
     }
     group.userData.polyUrbanMaterials = {roofMats,wallMats};
+    group.userData.polyUrbanTHREE = THREE;
     // Se mantiene compatibilidad con la lógica existente de estilos de PFKNR.
     group.userData.polyUrbanMaterial=roofMats[0];
     group.userData.polyUrbanWallMaterial=wallMats[0];
@@ -220,7 +221,8 @@
 
   function recolorGroup(group, color) {
     const data=group?.userData?.polyUrbanMaterials;
-    if(!data)return;
+    const THREE=group?.userData?.polyUrbanTHREE;
+    if(!data || !THREE)return;
     const base = new THREE.Color(color);
     // Blancos de cemento, tejas terracota, metal gris y otros tonos genéricos.
     // No representan acabados observados de cada edificio.
