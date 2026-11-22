@@ -727,8 +727,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
         }
       }
       if (inBar) {}
-      else if (abs(mid - selId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, accent, 0.5);
-      else if (abs(mid - hovId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), 0.3);`);
+      else if (selId >= 0.0 && abs(mid - selId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, accent, 0.5);
+      else if (hovId >= 0.0 && abs(mid - hovId) < 0.5) diffuseColor.rgb = mix(diffuseColor.rgb, vec3(1.0), 0.3);`);
   };
   const exGroup = new THREE.Group(); scene.add(exGroup);   // lo que se escala con la exageración vertical
   const terrain = new THREE.Mesh(tGeo, terrainMat);
