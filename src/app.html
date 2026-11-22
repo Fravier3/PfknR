@@ -283,6 +283,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   font:600 13px/1.25 var(--f-body); cursor:pointer; touch-action:manipulation; }
 #city-3d:focus-visible { outline:2px solid #e4502a; outline-offset:3px; }
 #city-3d[disabled] { opacity:.5; cursor:not-allowed; }
+#city-3d-status { margin:4px 0 5px; font:500 12px/1.4 var(--f-body); color:var(--muted); }
+#city-3d-status[hidden] { display:none; }
 
 
 </style>
@@ -312,6 +314,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     </div>
     <p class="sum" id="i-sum"></p>
     <button id="city-3d" type="button">Ver ciudad y edificios en 3D</button>
+    <p id="city-3d-status" role="status" aria-live="polite" hidden></p>
     <p class="wx" id="i-wx" hidden></p>
     <dl class="stats">
       <div><dt>Población 2020</dt><dd id="i-pob"></dd></div>
@@ -880,6 +883,21 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const URBAN = { on:false, group:null, request:0, abort:null, oldExag:4 };
   const stylePicker = $('pm-style'), urbanButton = $('t-buildings');
   const urbanRefresh = $('t-buildings-refresh'), urbanStatus = $('poly-status');
+  const cityStatus = $('city-3d-status');
+  function cityMessage(message) {
+    urbanStatus.hidden = false; urbanStatus.textContent = message;
+    cityStatus.hidden = false; cityStatus.textContent = message;
+  }
+  // Evita que el sombreado naranja del municipio cubra toda la vista al
+  // acercarnos a escala de edificios. No se borran barrios ni capas.
+  function urbanSurface(on) {
+    uni.selId.value = on ? -1 : selected;
+    uni.hovId.value = on ? -1 : hovered;
+    uni.regionOn.value = !on && LAYER ? 1 : 0;
+    uni.barOn.value = !on && BAR.list.length ? 1 : 0;
+    BAR.lines.forEach(line => { line.visible = !on; });
+    selLines.forEach(line => { line.visible = !on; });
+  }
   let polyStyle = 'original';
   try {
     const saved = localStorage.getItem('pfknr-poly-style');
@@ -920,8 +938,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     clearUrban();
     const ticket = URBAN.request, ctrl = new AbortController();
     URBAN.abort = ctrl;
-    urbanStatus.hidden = false;
-    urbanStatus.textContent = 'Consultando edificios de OpenStreetMap…';
+    cityMessage('Buscando edificios reales en OpenStreetMap…');
     try {
       const ways = await POLY.loadBuildings(lat,lon,{signal:ctrl.signal});
       if (ticket!==URBAN.request || !URBAN.on) return;
@@ -931,13 +948,15 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       URBAN.group = result.group;
       URBAN.group.visible = is3D && !solid;
       exGroup.add(URBAN.group);
-      urbanStatus.textContent = result.count
-        ? result.count+' edificios 3D · © OpenStreetMap · requiere internet'
-        : 'No hay huellas de edificios registradas para esta zona.';
+      urbanSurface(true);
+      cityMessage(result.count
+        ? result.count + ' edificios 3D cargados ('+(ways.source || 'OSM')+').'
+        : 'No hay huellas de edificios disponibles en esta zona.');
     } catch(err) {
       if (ticket!==URBAN.request || ctrl.signal.aborted && !URBAN.on) return;
-      urbanStatus.textContent = 'No se pudo consultar la capa urbana; el mapa sigue funcionando.';
-      note('No se pudieron cargar los edificios. Prueba Actualizar esta zona.',4500);
+      const message = String(err && err.message || err || 'Servicio no disponible').slice(0,125);
+      cityMessage('Edificios sin cargar: ' + message + '. Prueba otra zona o Actualizar.');
+      note('La descarga de edificios falló; el mapa de Puerto Rico sigue operativo.',4500);
     } finally { if (ticket===URBAN.request) URBAN.abort=null; }
   }
 
@@ -946,19 +965,21 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   async function showUrbanForSelected() {
     if (!URBAN.on || selected<0 || !POLY) return;
     const i=selected;
-    urbanStatus.hidden=false;
-    urbanStatus.textContent='Localizando centro urbano de '+DATA[i].name+'…';
+    cityMessage('Buscando el centro urbano de ' + DATA[i].name + '…');
     try { await BAR.ready; } catch(e) { /* si falla la ficha, usar centro municipal */ }
     if (selected!==i || !URBAN.on) return;
-    // A nivel de calle se mantiene el relieve sin el relleno de colores de barrios.
-    uni.barOn.value=0;
+    // Eliminar todos los tintes de selección al entrar al nivel de ciudad.
+    urbanSurface(true);
     const pueblo=BAR.list.find(b=>b.pueblo && Array.isArray(b.label));
     const [lon,lat]=pueblo?.label || DATA[i].label;
     const [x,y]=proj(lon,lat);
     // Cámara cercana sobre un núcleo urbano: la vista de todo el municipio
     // es demasiado distante para apreciar edificios de 7-15 metros.
-    const target=new THREE.Vector3(x,hAt(x,y),-y);
-    flyTo(target,target.clone().add(viewDir().multiplyScalar(.82)),1000);
+    const target=new THREE.Vector3(x,hAt(x,y)+.007,-y);
+    const direction=viewDir().clone();
+    direction.y=Math.max(.68,direction.y);
+    direction.normalize();
+    flyTo(target,target.clone().add(direction.multiplyScalar(.46)),1000);
     loadUrbanAt(lat,lon);
   }
 
@@ -980,8 +1001,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       setExag(1); $('t-exag').value='1';
       showUrbanForSelected();
     } else {
-      clearUrban(); urbanStatus.hidden=true;
-      uni.barOn.value = BAR.list.length ? 1 : 0;
+      clearUrban(); urbanStatus.hidden=true; cityStatus.hidden=true;
+      urbanSurface(false);
       camera.near=2; camera.far=6000; camera.updateProjectionMatrix();
       controls.minDistance=8;
       setExag(URBAN.oldExag); $('t-exag').value=String(URBAN.oldExag);
@@ -1376,7 +1397,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     selected = i; uni.selId.value = i; paintIslands(); setSelLines(i);
     app.classList.toggle('has-sel', i >= 0);
     renderList();
-    if (i < 0) { if (URBAN.on) clearUrban(); info.hidden = true; BAR.req++; clearBarrios(); BAR.ready = Promise.resolve(); LINKX = null; syncHash(); dispatch(null); return; }
+    if (i < 0) { if (URBAN.on) setUrbanMode(false); info.hidden = true; BAR.req++; clearBarrios(); BAR.ready = Promise.resolve(); LINKX = null; syncHash(); dispatch(null); return; }
     const m = DATA[i];
     $('i-code').textContent = m.id; $('i-name').textContent = m.name;
     $('i-reg').textContent = 'Región ' + m.region; $('i-regsw').style.background = regColor.get(m.region);
@@ -1400,14 +1421,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     BAR.ready = showBarrios(i);
     showWeather(m);
     LINKX = null; syncHash(); updateFav();
-    if (fly) flyToMuni(i);
-    if (URBAN.on) showUrbanForSelected();
+    if (fly && !URBAN.on) flyToMuni(i);
+    if (URBAN.on) { urbanSurface(true); showUrbanForSelected(); }
     dispatch(m);
   }
   function dispatch(m) { window.dispatchEvent(new CustomEvent('municipio:select', { detail: m ? { id: m.id, name: m.name } : null })); }
   function setHover(i) {
     if (i === hovered) return;
-    hovered = i; uni.hovId.value = i; paintIslands();
+    hovered = i; uni.hovId.value = URBAN.on ? -1 : i; paintIslands();
     canvas.classList.toggle('hovering', i >= 0);
   }
 
@@ -2153,7 +2174,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   function setLayer(l) {
     const prev = LAYER; LAYER = l; regionsOn = !!l;
     $('t-regions').setAttribute('aria-pressed', l === 'reg'); $('t-density').setAttribute('aria-pressed', l === 'den');
-    uni.regMap.value = l === 'den' ? denTex : regTex; uni.regionOn.value = l ? 1 : 0;
+    uni.regMap.value = l === 'den' ? denTex : regTex; uni.regionOn.value = l && !URBAN.on ? 1 : 0;
     legend.hidden = !l; buildLegend(); paintIslands();
     // los barrios del pueblo abierto cambian a colores de densidad (o vuelven a la paleta)
     if ((prev === 'den') !== (l === 'den') && selected >= 0) { const k = BAR.sel; BAR.ready = showBarrios(selected).then(() => { if (k >= 0) selectBarrio(k); }); }
