@@ -1,0 +1,33 @@
+name: Prueba visual 3D de Cayey y Loíza
+on:
+  push:
+    paths:
+      - '.github/workflows/urban-visual-test.yml'
+      - 'scripts/urban-visual-test.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  urban-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Instalar navegador y utilidades
+        run: |
+          npm install --no-save playwright@1.56.1 pngjs@7.0.0
+          npx playwright install --with-deps chromium
+      - name: Probar PFKNR en pantalla de iPad
+        run: |
+          python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/pfknr-http.log 2>&1 &
+          sleep 2
+          node scripts/urban-visual-test.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pfknr-urban-screenshots
+          path: artifacts/urban/
+          if-no-files-found: ignore
