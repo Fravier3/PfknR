@@ -48,7 +48,7 @@ try {
     return {width:c.width,height:c.height,webgl:!!(c.getContext('webgl2')||c.getContext('webgl'))};
   });
   console.log('RENDERER '+JSON.stringify(gl));
-  for (const town of ['Cayey','Loíza']) {
+  for (const town of ['Cayey','Loíza','Ponce']) {
     const selection=await page.evaluate(town=>window.PRMap.select(town),town);
     if(selection<0) throw Error('No se encontró pueblo '+town);
     await page.waitForFunction(name=>document.querySelector('#i-name')?.textContent===name,town,{timeout:15000});
@@ -61,7 +61,7 @@ try {
     const status=await page.locator('#city-3d-status').textContent();
     const shot=await page.locator('#scene').screenshot();
     const frame=await page.screenshot();
-    const slug=town==='Loíza'?'loiza':'cayey';
+    const slug=town.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
     writeFileSync(out+'/'+slug+'-canvas.png',shot);
     writeFileSync(out+'/'+slug+'-ipad.png',frame);
     const metric=assess(shot);
@@ -76,7 +76,7 @@ try {
   if(results.some(x=>x.metric.colors16<30)) throw Error('Canvas parece tener superficie de color uniforme');
   if(results.some(x=>x.metric.roofPixels<30)) throw Error('Edificios no aparecen en el área principal del mapa (cámara mal encuadrada)');
   if(errors.some(x=>/ReferenceError|TypeError|SyntaxError|INVALID_OPERATION/.test(x)))throw Error('Errores JS durante la prueba');
-  console.log('RESULT: PASS. Edificios, vías y árboles cargados en las dos ciudades.');
+  console.log('RESULT: PASS. Edificios, vías y árboles cargados en Cayey, Loíza y Ponce.');
 } catch(e){
   console.error('RESULT: FAIL '+e.stack);
   throw e;
