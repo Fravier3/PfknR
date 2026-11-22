@@ -1,0 +1,76 @@
+import { chromium } from 'playwright';
+import { PNG } from 'pngjs';
+import { writeFileSync, mkdirSync } from 'node:fs';
+
+const out = 'artifacts/urban';
+mkdirSync(out, {recursive:true});
+const browser = await chromium.launch({
+  headless: true,
+  args: ['--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--disable-dev-shm-usage']
+});
+const context=await browser.newContext({
+  viewport:{width:1024,height:1366},
+  deviceScaleFactor:1,
+  isMobile:true,hasTouch:true
+});
+const page=await context.newPage();
+const errors=[],badResponses=[];
+page.on('pageerror',e=>errors.push(String(e.message||e)));
+page.on('console',msg=>{ if(msg.type()==='error')errors.push('console: '+msg.text());});
+page.on('response',res=>{
+  if(res.status()>=400 && /(arcgis|overpass|municipios|barrios)/i.test(res.url()))
+    badResponses.push({url:res.url().slice(0,160),status:res.status()});
+});
+function assess(buffer){
+  const png=PNG.sync.read(buffer),bucket=new Set();const counts=new Map();
+  for(let y=250;y<png.height-200;y+=8){
+    for(let x=150;x<png.width-150;x+=8){
+      const k=(png.width*y+x)*4;
+      const r=png.data[k],g=png.data[k+1],b=png.data[k+2];
+      bucket.add([r>>4,g>>4,b>>4].join('-'));
+      const label=[r>>5,g>>5,b>>5].join('-');
+      counts.set(label,(counts.get(label)||0)+1);
+    }
+  }
+  const top=[...counts].sort((a,b)=>b[1]-a[1]).slice(0,5);
+  return {colors16:bucket.size,topColors32:top};
+}
+const results=[];
+try {
+  await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded',timeout:60000});
+  await page.waitForFunction(()=>!!window.PRMap,{timeout:90000});
+  const gl=await page.evaluate(()=>{
+    const c=document.querySelector('#scene');
+    return {width:c.width,height:c.height,webgl:!!(c.getContext('webgl')||c.getContext('experimental-webgl'))};
+  });
+  console.log('RENDERER '+JSON.stringify(gl));
+  for (const town of ['Cayey','Loíza']) {
+    const selection=await page.evaluate(town=>window.PRMap.select(town),town);
+    if(selection<0) throw Error('No se encontró pueblo '+town);
+    await page.waitForFunction(name=>document.querySelector('#i-name')?.textContent===name,town,{timeout:15000});
+    await page.locator('#city-3d').click();
+    await page.waitForFunction(()=>{
+      const s=document.querySelector('#city-3d-status')?.textContent||'';
+      return /edificios 3D cargados|Edificios sin cargar|No hay huellas/.test(s);
+    },null,{timeout:50000}).catch(e=>console.log('STATUS_TIMEOUT '+town+': '+e.message));
+    await page.waitForTimeout(1400);
+    const status=await page.locator('#city-3d-status').textContent();
+    const shot=await page.locator('#scene').screenshot();
+    const frame=await page.screenshot();
+    const slug=town==='Loíza'?'loiza':'cayey';
+    writeFileSync(out+'/'+slug+'-canvas.png',shot);
+    writeFileSync(out+'/'+slug+'-ipad.png',frame);
+    const metric=assess(shot);
+    results.push({town,status,metric});
+    console.log('URBAN_RESULT '+JSON.stringify({town,status,metric}));
+  }
+  console.log('NETWORK_ERRORS '+JSON.stringify(badResponses));
+  console.log('JS_ERRORS '+JSON.stringify(errors.slice(0,20)));
+  if(results.some(x=>!/edificios 3D cargados/.test(x.status))) throw Error('Al menos un pueblo no cargó edificios');
+  if(results.some(x=>x.metric.colors16<30)) throw Error('Canvas parece tener superficie de color uniforme');
+  if(errors.some(x=>/ReferenceError|TypeError|SyntaxError|INVALID_OPERATION/.test(x)))throw Error('Errores JS durante la prueba');
+  console.log('RESULT: PASS. Se cargaron edificios y el canvas tiene variedad de colores.');
+} catch(e){
+  console.error('RESULT: FAIL '+e.stack);
+  throw e;
+} finally { await browser.close(); }
