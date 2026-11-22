@@ -1,3 +1,4 @@
+// Ejecución de control remoto de proveedores (Cayey y Loíza)
 // Smoke test externo (GitHub Actions): verifica edificios reales para Cayey y Loíza.
 // No se ejecuta en el navegador ni requiere credenciales.
 const providers = [
