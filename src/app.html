@@ -268,6 +268,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   #legend { left: max(16px, env(safe-area-inset-left, 0px)); right: auto; grid-template-columns: 1fr 1fr; column-gap: 14px; }
   #legend .t { grid-column: 1 / -1; }
 }
+
+/* PolyMap: controles sólidos y sin desenfoque, aptos para iPhone */
+.pm-label { display:block; margin:9px 0 6px; font:600 11px var(--f-mono); color:var(--muted); }
+#pm-style { display:block; width:100%; padding:9px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg); color:var(--ink); font:500 13px var(--f-body); }
+#poly-status { display:block; padding:6px 2px; font:400 11px/1.45 var(--f-body); color:var(--muted); }
+#t-buildings-refresh { font-size:12px; }
+
 </style>
 
 <div id="app">
@@ -337,6 +345,19 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <button id="t-solid" class="row sw-row" type="button" aria-pressed="false">Verde sólido (sin relieve)</button>
     <button id="t-poi" class="row sw-row" type="button" aria-pressed="false">Lugares de interés</button>
     <div id="poi-cats" class="chips" hidden></div>
+    <label class="pm-label" for="pm-style">Estilo visual · PolyMap</label>
+    <select id="pm-style" aria-label="Estilo visual del mapa">
+      <option value="original">Original de PFKNR</option>
+      <option value="modern">Moderno</option>
+      <option value="cottagecore">Natural</option>
+      <option value="cyberpunk">Cyberpunk</option>
+      <option value="oldworld">Histórico</option>
+      <option value="greyscale">Escala de grises</option>
+    </select>
+    <button id="t-buildings" class="row sw-row" type="button" aria-pressed="false">Edificios 3D · PolyMap</button>
+    <button id="t-buildings-refresh" class="row" type="button" hidden>Actualizar edificios de esta zona</button>
+    <small id="poly-status" role="status" aria-live="polite" hidden></small>
+
   </div>
   <div id="sheet-more" class="panel sheet" hidden>
     <div class="sh-t">Más</div>
@@ -347,7 +368,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <button id="t-refresh" class="row" type="button">Buscar actualizaciones</button>
   </div>
   <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
-  <div id="credit">Límites: U.S. Census Bureau · Sectores y rutas: © OpenStreetMap · Clima: Open-Meteo · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
+  <div id="credit">Edificios 3D: © OpenStreetMap · Estilos PolyMap (MIT) · Límites: U.S. Census Bureau · Sectores y rutas: © OpenStreetMap · Clima: Open-Meteo · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
   <div id="tip" hidden></div>
   <div id="note" class="panel" role="status" hidden></div>
   <div id="route" class="panel" hidden>
@@ -385,6 +406,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
+<script src="js/polymap-urban.js"></script>
 <script>
 (async () => {
   'use strict';
@@ -842,6 +864,106 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
   new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
+
+  // ---------- PolyMap: paletas MIT + edificios de OpenStreetMap 3D ----------
+  const POLY = window.PolyUrban;
+  const URBAN = { on:false, group:null, request:0, abort:null, oldExag:4 };
+  const stylePicker = $('pm-style'), urbanButton = $('t-buildings');
+  const urbanRefresh = $('t-buildings-refresh'), urbanStatus = $('poly-status');
+  let polyStyle = 'original';
+  try {
+    const saved = localStorage.getItem('pfknr-poly-style');
+    if (POLY && POLY.THEMES[saved]) polyStyle = saved;
+  } catch (e) { /* almacenamiento opcional */ }
+  if (!POLY) { urbanButton.disabled = true; urbanStatus.hidden = false; urbanStatus.textContent = 'Capa urbana no disponible.'; }
+
+  function setPolyStyle(key) {
+    if (!POLY || !POLY.THEMES[key]) return;
+    polyStyle = key;
+    const pal = POLY.THEMES[key], root = document.documentElement;
+    const attrs = ['--deep','--shallow','--fog','--border','--island','--island-side'];
+    if (key === 'original') attrs.forEach(k => root.style.removeProperty(k));
+    else {
+      const tint = (c, f) => '#' + new THREE.Color(c).lerp(new THREE.Color('#ffffff'),f).getHexString();
+      const colors = [pal.water,tint(pal.water,.38),tint(pal.water,key==='cyberpunk'?.44:.78),
+        pal.road,pal.park,pal.building];
+      attrs.forEach((k,i) => root.style.setProperty(k,colors[i]));
+    }
+    terrainMat.color.set('#ffffff').lerp(new THREE.Color(pal.land),key==='original'?0:.38);
+    uni.solidGreen.value.set(key==='original'?'#6cad5c':pal.park);
+    if (URBAN.group) URBAN.group.userData.polyUrbanMaterial.color.set(pal.building);
+    applyTheme();
+    stylePicker.value = key;
+    try { localStorage.setItem('pfknr-poly-style',key); } catch(e) {}
+  }
+  stylePicker.addEventListener('change', () => setPolyStyle(stylePicker.value));
+  if (POLY) setPolyStyle(polyStyle);
+
+  function clearUrban() {
+    URBAN.request++;
+    URBAN.abort?.abort(); URBAN.abort = null;
+    if (URBAN.group) POLY.disposeGroup(URBAN.group);
+    URBAN.group = null;
+  }
+  async function loadUrbanAt(lat,lon) {
+    if (!URBAN.on || !POLY || !is3D) return;
+    clearUrban();
+    const ticket = URBAN.request, ctrl = new AbortController();
+    URBAN.abort = ctrl;
+    urbanStatus.hidden = false;
+    urbanStatus.textContent = 'Consultando edificios de OpenStreetMap…';
+    try {
+      const ways = await POLY.loadBuildings(lat,lon,{signal:ctrl.signal});
+      if (ticket!==URBAN.request || !URBAN.on) return;
+      const result = POLY.makeGroup({ways,THREE,project:proj,groundAt:hAt,
+        center:{lat,lon},maxBuildings:small?220:450,color:POLY.THEMES[polyStyle].building});
+      if (ticket!==URBAN.request || !URBAN.on) { POLY.disposeGroup(result.group); return; }
+      URBAN.group = result.group;
+      URBAN.group.visible = is3D && !solid;
+      exGroup.add(URBAN.group);
+      urbanStatus.textContent = result.count
+        ? result.count+' edificios 3D · © OpenStreetMap · requiere internet'
+        : 'No hay huellas de edificios registradas para esta zona.';
+    } catch(err) {
+      if (ticket!==URBAN.request || ctrl.signal.aborted && !URBAN.on) return;
+      urbanStatus.textContent = 'No se pudo consultar la capa urbana; el mapa sigue funcionando.';
+      note('No se pudieron cargar los edificios. Prueba Actualizar esta zona.',4500);
+    } finally { if (ticket===URBAN.request) URBAN.abort=null; }
+  }
+
+  function setUrbanMode(on) {
+    if (on && selected<0) {
+      note('Selecciona un pueblo y luego activa Edificios 3D.',4200);
+      return;
+    }
+    URBAN.on=on;
+    urbanButton.setAttribute('aria-pressed',String(on));
+    urbanRefresh.hidden=!on;
+    if (on) {
+      if (!is3D) $('t-3d').click();
+      URBAN.oldExag = EXS;
+      camera.near=.05; camera.far=1800; camera.updateProjectionMatrix();
+      controls.minDistance=.2;
+      setExag(1); $('t-exag').value='1';
+      const [lon,lat]=DATA[selected].label, [x,y]=proj(lon,lat);
+      const target=new THREE.Vector3(x,hAt(x,y),-y);
+      flyTo(target,target.clone().add(viewDir().multiplyScalar(.95)),1050);
+      loadUrbanAt(lat,lon);
+    } else {
+      clearUrban(); urbanStatus.hidden=true;
+      camera.near=2; camera.far=6000; camera.updateProjectionMatrix();
+      controls.minDistance=8;
+      setExag(URBAN.oldExag); $('t-exag').value=String(URBAN.oldExag);
+      if (camera.position.distanceTo(controls.target)<9)
+        flyTo(controls.target.clone(),controls.target.clone().add(viewDir().multiplyScalar(13)),700);
+    }
+  }
+  urbanButton.addEventListener('click',()=> { if (POLY) setUrbanMode(!URBAN.on); });
+  urbanRefresh.addEventListener('click',()=> {
+    const [lon,lat]=unproj(controls.target.x,-controls.target.z);
+    loadUrbanAt(lat,lon);
+  });
+
   // ---------- Etiquetas ----------
   const labelsEl = $('labels');
   const muni = DATA.map((m, i) => {
@@ -1218,7 +1340,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     selected = i; uni.selId.value = i; paintIslands(); setSelLines(i);
     app.classList.toggle('has-sel', i >= 0);
     renderList();
-    if (i < 0) { info.hidden = true; BAR.req++; clearBarrios(); BAR.ready = Promise.resolve(); LINKX = null; syncHash(); dispatch(null); return; }
+    if (i < 0) { if (URBAN.on) clearUrban(); info.hidden = true; BAR.req++; clearBarrios(); BAR.ready = Promise.resolve(); LINKX = null; syncHash(); dispatch(null); return; }
     const m = DATA[i];
     $('i-code').textContent = m.id; $('i-name').textContent = m.name;
     $('i-reg').textContent = 'Región ' + m.region; $('i-regsw').style.background = regColor.get(m.region);
@@ -1243,6 +1365,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     showWeather(m);
     LINKX = null; syncHash(); updateFav();
     if (fly) flyToMuni(i);
+    if (URBAN.on) loadUrbanAt(m.label[1],m.label[0]);
     dispatch(m);
   }
   function dispatch(m) { window.dispatchEvent(new CustomEvent('municipio:select', { detail: m ? { id: m.id, name: m.name } : null })); }
@@ -1940,6 +2063,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   toggle('t-spin', on => { controls.autoRotate = on; });
   toggle('t-3d', on => {
     is3D = on; applyControlMode(); setHint();
+    if (URBAN.group) URBAN.group.visible = on && !solid;
     $('t-spin').hidden = !on; if (!on) $('t-spin').setAttribute('aria-pressed', false);
     $('t-exag-wrap').hidden = !on || solid;
     const d = camera.position.distanceTo(controls.target);
@@ -1948,6 +2072,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const lineMats = [bordersMat, selLineMat, barLineMat, barLineSelMat, comLineMat];
   toggle('t-solid', on => {
     solid = on; uni.solidOn.value = on ? 1 : 0; waterU.uSolid.value = on ? 1 : 0;
+    if (URBAN.group) URBAN.group.visible = !on && is3D;
     setExag(EXS);
     // en plano las líneas se dibujan siempre encima (no hay montañas que las tapen)
     lineMats.forEach(m => { m.depthTest = !on; m.needsUpdate = true; });
