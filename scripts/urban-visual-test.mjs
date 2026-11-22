@@ -55,7 +55,7 @@ try {
     await page.locator('#city-3d').click();
     await page.waitForFunction(()=>{
       const s=document.querySelector('#city-3d-status')?.textContent||'';
-      return /edificios 3D cargados|Edificios sin cargar|No hay huellas/.test(s);
+      return /vías reales|Calles\/vegetación no disponibles|Edificios sin cargar|No hay huellas/.test(s);
     },null,{timeout:50000}).catch(e=>console.log('STATUS_TIMEOUT '+town+': '+e.message));
     await page.waitForTimeout(1400);
     const status=await page.locator('#city-3d-status').textContent();
@@ -70,11 +70,13 @@ try {
   }
   console.log('NETWORK_ERRORS '+JSON.stringify(badResponses));
   console.log('JS_ERRORS '+JSON.stringify(errors.slice(0,20)));
-  if(results.some(x=>!/edificios 3D cargados/.test(x.status))) throw Error('Al menos un pueblo no cargó edificios');
+  if(results.some(x=>!/vías reales/.test(x.status))) throw Error('No se cargaron las nuevas vías / vegetación en alguna ciudad');
+  if(results.some(x=> !/\d+ edificios 3D/.test(x.status) || Number(x.status.match(/(\d+) edificios 3D/)?.[1]||0)<30)) throw Error('No se cargaron suficientes edificios');
+  if(results.some(x=> Number(x.status.match(/(\d+) vías reales/)?.[1]||0)<10)) throw Error('Vías reales insuficientes');
   if(results.some(x=>x.metric.colors16<30)) throw Error('Canvas parece tener superficie de color uniforme');
   if(results.some(x=>x.metric.roofPixels<30)) throw Error('Edificios no aparecen en el área principal del mapa (cámara mal encuadrada)');
   if(errors.some(x=>/ReferenceError|TypeError|SyntaxError|INVALID_OPERATION/.test(x)))throw Error('Errores JS durante la prueba');
-  console.log('RESULT: PASS. Se cargaron edificios y el canvas tiene variedad de colores.');
+  console.log('RESULT: PASS. Edificios, vías y árboles cargados en las dos ciudades.');
 } catch(e){
   console.error('RESULT: FAIL '+e.stack);
   throw e;
