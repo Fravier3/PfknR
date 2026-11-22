@@ -56,6 +56,16 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - `scripts/`: generación de datos y de la PWA.
 - `referencia/`: imágenes de referencia (regiones y barrios de Cayey).
 
+
+## Ciudades 3D y estilos PolyMap (v1.5.0)
+
+- En **Capas → Estilo visual** se encuentran Original, Moderno, Natural, Cyberpunk, Histórico y Escala de grises. Las paletas se adaptaron de [CottageHop/PolyMap](https://github.com/CottageHop/PolyMap) (MIT). Se conserva el relieve, el Censo, los límites y los nombres de PFKNR.
+- En **Capas → Edificios 3D · PolyMap**, primero selecciona un municipio. Se activa la vista 3D, se acerca al núcleo poblado y se consultan las huellas de edificios reales de **OpenStreetMap** mediante Overpass. La altura usa las etiquetas height o building:levels cuando están disponibles; si no, utiliza 7 m aproximados.
+- **Actualizar edificios de esta zona** carga las construcciones alrededor del punto central de la vista (radio de 650 m). Se aplican límites de 220 edificios en móvil y 450 en escritorio. La capa se limpia al cambiar de municipio o apagarla.
+- Los edificios requieren internet, pueden faltar por ausencia de datos OSM o por límites/caídas del servidor Overpass. El mapa principal y sus datos descargados siguen funcionando independientemente de esta capa. No se guardan datos de edificios para uso offline.
+- El motor original sigue siendo **Three.js**. No se incorpora el renderer Rust/WASM completo de PolyMap: exigiría migrar la proyección y las capas geográficas existentes. El módulo adaptador es js/polymap-urban.js y usa los principios de extrusión y detalle por zoom de PolyMap.
+- Créditos: PolyMap © CottageHop (licencia MIT); geometrías © OpenStreetMap contributors (ODbL). Fuentes de la API: overpass.private.coffee y overpass-api.de.
+
 ## Código tomado de otros repositorios
 
 - **Motion** (motiondivision/motion, MIT): cifras que cuentan y entrada escalonada de las listas de la ficha.
