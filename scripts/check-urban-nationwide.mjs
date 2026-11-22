@@ -1,6 +1,15 @@
 // Comprobación por zonas de Puerto Rico (no descarga todas las vías de la isla).
 // Usa los barrios-pueblo del propio PFKNR, con las mismas fuentes de la PWA.
-import {readFileSync} from 'node:fs';
+import {readFileSync,readdirSync} from 'node:fs';
+const allMunicipios=readdirSync('data/barrios').filter(name=>/^72\d{3}\.json$/.test(name));
+if(allMunicipios.length!==78)throw Error('Se esperaban los 78 municipios, hay '+allMunicipios.length);
+for(const name of allMunicipios){
+ const barrios=JSON.parse(readFileSync('data/barrios/'+name,'utf8'));
+ const center=barrios.find(b=>b.pueblo)?.label||barrios[0]?.label;
+ if(!center||!Number.isFinite(center[0])||!Number.isFinite(center[1]))
+   throw Error('Centro geográfico no disponible para '+name);
+}
+console.log('MUNICIPALITY_DATASET '+JSON.stringify({municipios:allMunicipios.length,centersValid:true}));
 const samples=[
  ['Aguadilla','72005'],['Arecibo','72013'],['Cayey','72035'],['Culebra','72049'],
  ['Humacao','72069'],['Loíza','72087'],['Mayagüez','72097'],['Ponce','72113'],
@@ -41,6 +50,20 @@ for(const [town,fips] of samples){
    if(!response.ok||json.error||!Array.isArray(json.features))errors++;
    if(name==='roads' && features.length===0)errors++;
   }catch(e){row[name]={error:String(e.message||e)};errors++;}
+ }
+ if(!row.roads?.count){
+  const fallback='https://services8.arcgis.com/RdbQZfEkeO8qG89L/ArcGIS/rest/services/PR_Roads/FeatureServer/0/query';
+  const radius=.008, extent=[lon-radius,lat-radius,lon+radius,lat+radius].map(x=>x.toFixed(6)).join(',');
+  const params=new URLSearchParams({
+   f:'geojson',where:'1=1',geometry:extent,geometryType:'esriGeometryEnvelope',
+   inSR:'4326',outSR:'4326',spatialRel:'esriSpatialRelIntersects',
+   outFields:'OBJECTID,FULLNAME,MTFCC',returnGeometry:'true',resultRecordCount:'70'
+  });
+  try{
+   const res=await fetch(fallback+'?'+params,{signal:AbortSignal.timeout(15000)});
+   const json=await res.json();
+   row.roadsFallback={http:res.status,count:json.features?.length||0,cors:res.headers.get('access-control-allow-origin')};
+  }catch(e){row.roadsFallback={error:String(e.message||e)};}
  }
  console.log('ISLAND_WIDE '+JSON.stringify(row));
 }
