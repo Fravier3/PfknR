@@ -1416,7 +1416,7 @@ button { touch-action: manipulation; }
   const fmtLL = ([lon, lat]) => `${lat.toFixed(3)}°N ${Math.abs(lon).toFixed(3)}°O`;
   function select(i, { fly = true } = {}) {
     if (!GPS.internal && GPS.watch != null) { GPS.userActed = true; if (GPS.auto) setAuto(false); }
-    if (i === selected && i !== -1) { if (fly) flyToMuni(i); return; }
+    if (i === selected && i !== -1) { if (fly) { if (URBAN.on) showUrbanForSelected(); else flyToMuni(i); } return; }
     selected = i; uni.selId.value = i; paintIslands(); setSelLines(i);
     app.classList.toggle('has-sel', i >= 0);
     renderList();
