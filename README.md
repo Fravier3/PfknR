@@ -85,6 +85,19 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - Hay una prueba visual reproducible en `scripts/urban-visual-test.mjs` y `.github/workflows/urban-visual-test.yml`; guarda capturas en los artefactos de GitHub Actions.
 - Datos externos: ArcGIS Caribe/OpenStreetMap validó hasta 750 huellas cerradas en Cayey y Loíza con acceso CORS; algunos edificios usan altura aproximada por falta de etiqueta OSM.
 
+
+### Nuevas capas urbanas de todo Puerto Rico (v1.6.0)
+
+La vista urbana se genera **por zona geográfica**, así que los 78 municipios, Vieques y Culebra utilizan el mismo sistema sin duplicar código ni cargar toda la isla. Al seleccionar un municipio y pulsar **Ver ciudad y edificios en 3D** se consulta el área de su barrio-pueblo y se dibujan:
+
+- **Edificios:** huellas OSM registradas en ArcGIS Caribe, con altura OSM si está disponible y extrusión aproximada en los demás casos.
+- **Calles:** líneas de carreteras **reales** de un servicio cartográfico de Puerto Rico (ArcGIS `pr_inf_roadsall`). Anchura de calzada y aceras **ilustrativas**, ya que el conjunto no aporta anchos reales; no incluye navegación vial.
+- **Zonas verdes:** polígonos OSM de bosques, césped, praderas, cultivos y zonas recreativas cuando existan.
+- **Vegetación:** árboles en 3D **procedimentales e ilustrativos** sobre áreas no edificadas, más concentrados en las zonas verdes cartografiadas. **Sus ubicaciones individuales no están verificadas**; no son un inventario de árboles.
+- **Capas opcionales:** `Capas → Calles, parques y árboles` permite mostrar/ocultar los detalles. Carga automática de cada zona con caché pequeña; la ciudad sigue funcionando si alguno de los servicios externos falla.
+
+Tecnología adaptada a **Three.js** de PFKNR, inspirada en el renderizado por capas/LOD de PolyMap; **no se ha incorporado el renderer Rust/WASM original**. Los edificios tienen geometrías simplificadas y no son fotografías ni recreaciones arquitectónicas exactas. Fuentes: carreteras cartográficas de Puerto Rico (ArcGIS), OSM © OpenStreetMap contributors (ODbL), PolyMap © CottageHop (MIT).
+
 ## Ciudades 3D y estilos PolyMap (v1.5.0)
 
 - En **Capas → Estilo visual** se encuentran Original, Moderno, Natural, Cyberpunk, Histórico y Escala de grises. Las paletas se adaptaron de [CottageHop/PolyMap](https://github.com/CottageHop/PolyMap) (MIT). Se conserva el relieve, el Censo, los límites y los nombres de PFKNR.
