@@ -14,7 +14,14 @@ const services=[
 let errors=0;
 for(const [town,fips] of samples){
  let barrios=JSON.parse(readFileSync('data/barrios/'+fips+'.json','utf8'));
- const [lon,lat]=(barrios.find(x=>x.pueblo)?.label||barrios[0]?.label||[]);
+ const pueblo=barrios.find(x=>x.pueblo && Array.isArray(x.label));
+ const numbered=barrios.filter(b=>/^(primero|segundo|tercero|cuarto|quinto|sexto|séptimo|septimo|octavo|noveno|décimo|decimo)$/i.test(b.name||'')&&Array.isArray(b.label));
+ const urban=barrios.filter(b=>/urbano|pueblo|casco|centro/i.test(b.name||'')&&Array.isArray(b.label))
+   .sort((a,b)=>(b.pob||0)/Math.max(.1,b.areaKm2||1)-(a.pob||0)/Math.max(.1,a.areaKm2||1));
+ const center=numbered.length>=3
+   ? [numbered.reduce((s,b)=>s+b.label[0],0)/numbered.length,numbered.reduce((s,b)=>s+b.label[1],0)/numbered.length]
+   : null;
+ const [lon,lat]=(pueblo?.label||center||urban[0]?.label||barrios[0]?.label||[]);
  if(!Number.isFinite(lon)||!Number.isFinite(lat))throw Error('No center for '+town);
  const span=.0043, lonSpan=span/Math.max(.65,Math.cos(lat*Math.PI/180));
  const bbox=[lon-lonSpan,lat-span,lon+lonSpan,lat+span].map(v=>v.toFixed(6)).join(',');
@@ -32,6 +39,7 @@ for(const [town,fips] of samples){
    const features=json.features||[];
    row[name]={http:response.status,count:features.length,type:features[0]?.geometry?.type||null,cors:response.headers.get('access-control-allow-origin')};
    if(!response.ok||json.error||!Array.isArray(json.features))errors++;
+   if(name==='roads' && features.length===0)errors++;
   }catch(e){row[name]={error:String(e.message||e)};errors++;}
  }
  console.log('ISLAND_WIDE '+JSON.stringify(row));
