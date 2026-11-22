@@ -908,6 +908,12 @@ button { touch-action: manipulation; }
   const DETAIL = window.PolyDetail;
   const URBAN = { on:false, group:null, detailGroup:null, detailsEnabled:true, request:0, abort:null, oldExag:4, buildings:[] };
   const detailButton=$('t-urban-details');
+  // Las islas municipio tienen una tapa topográfica a ISL_H.
+  // Elevar solo estos detalles urbanos evita que calles/edificios queden ocultos.
+  function urbanGroundAt(x,y) {
+    const h=hAt(x,y);
+    return selected>=0 && DATA[selected].island ? Math.max(h,ISL_H+.001) : h;
+  }
   const stylePicker = $('pm-style'), urbanButton = $('t-buildings');
   const urbanRefresh = $('t-buildings-refresh'), urbanStatus = $('poly-status');
   const cityStatus = $('city-3d-status');
@@ -973,7 +979,7 @@ button { touch-action: manipulation; }
     try {
       const ways = await POLY.loadBuildings(lat,lon,{signal:ctrl.signal});
       if (ticket!==URBAN.request || !URBAN.on) return;
-      const result = POLY.makeGroup({ways,THREE,project:proj,groundAt:hAt,
+      const result = POLY.makeGroup({ways,THREE,project:proj,groundAt:urbanGroundAt,
         center:{lat,lon},maxBuildings:small?220:450,color:POLY.THEMES[polyStyle].building});
       if (ticket!==URBAN.request || !URBAN.on) { POLY.disposeGroup(result.group); return; }
       URBAN.group = result.group;
@@ -985,7 +991,7 @@ button { touch-action: manipulation; }
         if(URBAN.detailGroup)DETAIL.dispose(URBAN.detailGroup);
         if (!URBAN.detailsEnabled) return;
         const context=DETAIL.make({
-          THREE,features,groundAt:hAt,project:proj,center:{lat,lon},
+          THREE,features,groundAt:urbanGroundAt,project:proj,center:{lat,lon},
           buildings:URBAN.buildings,small,style:polyStyle
         });
         URBAN.detailGroup=context.group;
@@ -1003,7 +1009,7 @@ button { touch-action: manipulation; }
         // Reencuadre en la concentración real de estructuras.
         // Evita las vistas vacías que se observaron en Cayey en iPad.
         const f=result.focus;
-        const target=new THREE.Vector3(f.x,hAt(f.x,f.y)+.007,-f.y);
+        const target=new THREE.Vector3(f.x,urbanGroundAt(f.x,f.y)+.007,-f.y);
         const direction=new THREE.Vector3(.14,.86,.52).normalize();
         const distance=small?.48:.62;
         flyTo(target,target.clone().add(direction.multiplyScalar(distance)),850);
@@ -1034,7 +1040,7 @@ button { touch-action: manipulation; }
     const [x,y]=proj(lon,lat);
     // Cámara cercana sobre un núcleo urbano: la vista de todo el municipio
     // es demasiado distante para apreciar edificios de 7-15 metros.
-    const target=new THREE.Vector3(x,hAt(x,y)+.007,-y);
+    const target=new THREE.Vector3(x,urbanGroundAt(x,y)+.007,-y);
     const direction=viewDir().clone();
     direction.y=Math.max(.68,direction.y);
     direction.normalize();
