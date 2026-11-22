@@ -57,6 +57,15 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - `referencia/`: imágenes de referencia (regiones y barrios de Cayey).
 
 
+
+### Corrección v1.5.1 — edificios de Cayey y centros urbanos
+
+- La ficha municipal incluye **Ver ciudad y edificios en 3D**, incluso en modo compacto de iPhone.
+- Activar la vista 3D en un municipio activa también la capa urbana; el usuario puede desactivarla desde Capas.
+- El enfoque de edificios toma la etiqueta real de **barrio-pueblo** desde los datos locales (Cayey: -66.1713, 18.11196), no el centro geográfico del municipio.
+- La consulta de edificios prioriza el FeatureServer OSM de ArcGIS para Caribe y Centroamérica, con reserva de Overpass si falla o viene vacío. Las peticiones se cancelan al cambiar de municipio; las alturas se leen de `height`, `building_levels` o `levels` según la fuente.
+- Los edificios requieren internet, conexión al servidor y cobertura OSM. No se generan estructuras ficticias. La representación en navegador todavía requiere prueba visual en un iPhone real.
+
 ## Ciudades 3D y estilos PolyMap (v1.5.0)
 
 - En **Capas → Estilo visual** se encuentran Original, Moderno, Natural, Cyberpunk, Histórico y Escala de grises. Las paletas se adaptaron de [CottageHop/PolyMap](https://github.com/CottageHop/PolyMap) (MIT). Se conserva el relieve, el Censo, los límites y los nombres de PFKNR.
