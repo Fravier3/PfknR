@@ -949,6 +949,15 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       URBAN.group.visible = is3D && !solid;
       exGroup.add(URBAN.group);
       urbanSurface(true);
+      if (result.focus && result.count) {
+        // Reencuadre en la concentración real de estructuras.
+        // Evita las vistas vacías que se observaron en Cayey en iPad.
+        const f=result.focus;
+        const target=new THREE.Vector3(f.x,hAt(f.x,f.y)+.007,-f.y);
+        const direction=new THREE.Vector3(.14,.86,.52).normalize();
+        const distance=small?.48:.62;
+        flyTo(target,target.clone().add(direction.multiplyScalar(distance)),850);
+      }
       cityMessage(result.count
         ? result.count + ' edificios 3D cargados ('+(ways.source || 'OSM')+').'
         : 'No hay huellas de edificios disponibles en esta zona.');
