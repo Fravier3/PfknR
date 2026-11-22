@@ -1,6 +1,6 @@
 // Service worker de Puerto Rico 3D: precache del núcleo, red primero para index y version.json,
 // y "stale-while-revalidate" para los datos de barrios, comunidades, subbarrios y sectores.
-const CACHE = 'pfknr-v1.6.1';
+const CACHE = 'pfknr-v1.6.2';
 const DATA_CACHE = 'pfknr-datos';   // lo que se guarda con "Guardar todo para usar sin internet"
 const CORE = [
   './', './index.html', './manifest.webmanifest', './version.json', './favicon.png',
