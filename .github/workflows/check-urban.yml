@@ -1,0 +1,20 @@
+name: Verificación remota edificios 3D PFKNR
+on:
+  push:
+    paths:
+      - '.github/workflows/check-urban.yml'
+      - 'scripts/check-urban-source.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Consultar edificios de Cayey y Loíza
+        run: node scripts/check-urban-source.mjs
