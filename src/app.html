@@ -933,9 +933,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     terrainMat.color.set('#ffffff').lerp(new THREE.Color(pal.land),key==='original'?0:.38);
     uni.solidGreen.value.set(key==='original'?'#6cad5c':pal.park);
     if (URBAN.group) {
-      URBAN.group.userData.polyUrbanMaterial.color.set(pal.building);
-      if (URBAN.group.userData.polyUrbanWallMaterial)
-        URBAN.group.userData.polyUrbanWallMaterial.color.set(pal.building).multiplyScalar(.72);
+      if (typeof POLY.recolorGroup==='function') POLY.recolorGroup(URBAN.group,pal.building);
+      else URBAN.group.userData.polyUrbanMaterial?.color.set(pal.building);
     }
     applyTheme();
     stylePicker.value = key;
