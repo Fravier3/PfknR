@@ -9,13 +9,16 @@
 (function(root){
 'use strict';
 const ROAD_URL='https://services.arcgis.com/F7DSX1DSNSiWmOqh/ArcGIS/rest/services/pr_inf_roadsall/FeatureServer/0/query';
+// Servicio complementario: carreteras con nombre y clasificación, cuando la
+// primera fuente no tiene vías cercanas (ej.: núcleo consultado de Ponce).
+const ROAD_FALLBACK='https://services8.arcgis.com/RdbQZfEkeO8qG89L/ArcGIS/rest/services/PR_Roads/FeatureServer/0/query';
 const LAND_URL='https://services6.arcgis.com/Do88DoK2xjTUCXd1/ArcGIS/rest/services/OSM_CA_Landuse/FeatureServer/0/query';
 const GREEN=new Set(['grass','meadow','forest','orchard','recreation_ground','cemetery','farmland','farmyard','clearing']);
 const CITY_RADIUS=0.0043; // cerca de 450m por consulta, solo zona urbana actual
 const cache=new Map();
 
-async function query(url,lat,lon,signal,fields,count) {
-  const latSpan=CITY_RADIUS, lonSpan=CITY_RADIUS/Math.max(0.65,Math.cos(lat*Math.PI/180));
+async function query(url,lat,lon,signal,fields,count,radius=CITY_RADIUS) {
+  const latSpan=radius, lonSpan=radius/Math.max(0.65,Math.cos(lat*Math.PI/180));
   const extent=[lon-lonSpan,lat-latSpan,lon+lonSpan,lat+latSpan].map(v=>v.toFixed(6)).join(',');
   const params=new URLSearchParams({
     f:'geojson',where:'1=1',geometry:extent,geometryType:'esriGeometryEnvelope',
@@ -47,10 +50,25 @@ async function load(lat,lon,signal){
     query(LAND_URL,lat,lon,signal,'osm_id2,landuse,name',160)
   ]);
   if(signal && signal.aborted)throw new DOMException('Cancelado','AbortError');
-  if(roads.status==='rejected'&&land.status==='rejected')
+  // Extender la cobertura sin fabricar geometrías si la fuente principal está
+  // vacía. Se prioriza la consulta pequeña para no ralentizar cada municipio.
+  let roadList=roads.status==='fulfilled'?roads.value:[];
+  let roadSource='PR Roads principal';
+  if(roadList.length<10) {
+    try{
+      const alternative=await query(ROAD_FALLBACK,lat,lon,signal,'OBJECTID,FULLNAME,MTFCC',400,.008);
+      if(alternative.length>roadList.length){
+        roadList=alternative;
+        roadSource='PR Roads alternativo';
+      }
+    }catch(e){ /* las otras capas siguen disponibles */ }
+  }
+  if(signal && signal.aborted)throw new DOMException('Cancelado','AbortError');
+  if(roads.status==='rejected'&&land.status==='rejected'&&!roadList.length)
     throw new Error('Sin conexión a carreteras ni áreas verdes');
   const result={
-    roads:roads.status==='fulfilled'?roads.value:[],
+    roads:roadList,
+    roadSource,
     green:land.status==='fulfilled'?land.value.filter(f=>GREEN.has(f.properties?.landuse)):[],
     roadsError:roads.status==='rejected'?String(roads.reason?.message||roads.reason):null,
     greenError:land.status==='rejected'?String(land.reason?.message||land.reason):null
@@ -221,5 +239,5 @@ function make(options){
  }
  return {group,roads:projectedRoads.length,parks:parkCount,trees:spots.length,approximateTrees:true};
 }
-root.PolyDetail=Object.freeze({load,make,dispose,ROAD_URL,LAND_URL});
+root.PolyDetail=Object.freeze({load,make,dispose,ROAD_URL,ROAD_FALLBACK,LAND_URL});
 })(window);
