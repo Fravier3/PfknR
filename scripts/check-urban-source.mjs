@@ -22,7 +22,9 @@ for (const [city,lat,lon] of cities) {
       const data=JSON.parse(raw);
       const count=data.features?.length||0;
       const point=data.features?.find(f=>f?.geometry?.coordinates)?.geometry?.coordinates?.[0]?.[0];
-      console.log(JSON.stringify({city,source:name,status:response.status,count,bytes:raw.length,cors:response.headers.get('access-control-allow-origin'),firstCoordinate:point||null,firstHeight:data.features?.[0]?.properties?.height||null,error:data.error?.message||null}));
+      const rings=data.features?.flatMap(f=>f.geometry?.type==='Polygon' ? (f.geometry.coordinates||[]) : (f.geometry?.coordinates||[]).flat()) || [];
+      const closed=rings.filter(r=>r.length>=4 && Array.isArray(r[0]) && Array.isArray(r.at(-1)) && r[0][0]===r.at(-1)[0] && r[0][1]===r.at(-1)[1]).length;
+      console.log(JSON.stringify({city,source:name,status:response.status,count,bytes:raw.length,cors:response.headers.get('access-control-allow-origin'),firstCoordinate:point||null,closed,firstGeometryType:data.features?.[0]?.geometry?.type||null,firstHeight:data.features?.[0]?.properties?.height||null,error:data.error?.message||null}));
       if(response.ok&&count>0)successes++;
     }catch(e){
       console.log(JSON.stringify({city,source:name,error:String(e.message||e)}));
