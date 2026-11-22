@@ -76,6 +76,15 @@ Publicada en GitHub Pages: https://fravier3.github.io/PfknR/ — se instala en i
 - Validación remota de ArcGIS Caribe (22 nov 2026, GitHub Actions): 750 edificios de muestra para Cayey Pueblo y 750 para Loíza Pueblo; ambas respuestas HTTP 200, CORS '*', polígonos cerrados aptos para extrusión.
 - Se agregó el proveedor ArcGIS Norteamérica como reserva y continúa Overpass si la primera fuente no devuelve resultados. **Nota:** disponibilidad de edificios no equivale a validación visual en Safari. Verificar en iPad después de publicar.
 
+
+### Corrección de cámara urbana v1.5.3
+
+- Prueba visual automatizada en Chromium con resolución de iPad: 450 edificios reales se cargaron en Cayey y 450 en Loíza, pero la captura detectó que en Cayey aparecían mayormente fuera del encuadre.
+- La cámara se **reencuadra después de cargar los datos** tomando el núcleo de mayor densidad de edificios del área descargada. Ya no depende únicamente de la etiqueta del barrio-pueblo.
+- Mantiene el relieve, oculta temporalmente los tintes de municipios y barrios al entrar en ciudad 3D y recupera sus estilos al salir.
+- Hay una prueba visual reproducible en `scripts/urban-visual-test.mjs` y `.github/workflows/urban-visual-test.yml`; guarda capturas en los artefactos de GitHub Actions.
+- Datos externos: ArcGIS Caribe/OpenStreetMap validó hasta 750 huellas cerradas en Cayey y Loíza con acceso CORS; algunos edificios usan altura aproximada por falta de etiqueta OSM.
+
 ## Ciudades 3D y estilos PolyMap (v1.5.0)
 
 - En **Capas → Estilo visual** se encuentran Original, Moderno, Natural, Cyberpunk, Histórico y Escala de grises. Las paletas se adaptaron de [CottageHop/PolyMap](https://github.com/CottageHop/PolyMap) (MIT). Se conserva el relieve, el Censo, los límites y los nombres de PFKNR.
