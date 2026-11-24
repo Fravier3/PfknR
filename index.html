@@ -501,7 +501,7 @@ button { touch-action: manipulation; }
 <script src="libs/motion.js"></script>
 <script src="js/polymap-urban.js"></script>
 <script src="js/polymap-detail.js?v=1.7.0"></script>
-<script src="js/satellite.js?v=1.7.6"></script>
+<script src="js/satellite.js?v=1.7.7"></script>
 <script>
 (async () => {
   'use strict';
@@ -902,7 +902,7 @@ button { touch-action: manipulation; }
       } } });
     return { isl, pts };
   }
-  const bordersMat = PRBoundaries.strokeMaterial(THREE, '#101010', 2.5);
+  const bordersMat = PRBoundaries.municipalMaterial(THREE);
   const selLineMat = new THREE.LineBasicMaterial({ depthWrite: false });
   const mkLines = (arr, mat, ro) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); const l = new THREE.LineSegments(g, mat); l.renderOrder = ro; return l; };
   function buildLines(polys, lift) { const main = [], isl = []; polys.forEach(p => { const d = draped(p, lift); (d.isl ? isl : main).push(...d.pts); }); return { main, isl }; }
@@ -2504,7 +2504,7 @@ button { touch-action: manipulation; }
 })();
 </script>
 
-<script>window.APP_VERSION = '1.7.6';</script>
+<script>window.APP_VERSION = '1.7.7';</script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

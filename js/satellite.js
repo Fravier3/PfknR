@@ -40,6 +40,10 @@
     });
   }
 
+  function municipalMaterial(THREE) {
+    return strokeMaterial(THREE, '#ffffff', 2.5);
+  }
+
   function strokeMesh(THREE, vertices, material, order, layer) {
     const geometry = new THREE.InstancedBufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute([0,-1,0, 1,-1,0, 1,1,0, 0,1,0], 3));
@@ -80,9 +84,7 @@
     const bounds = new THREE.Box2();
     const place = new THREE.Vector2();
     const navy = new THREE.Color('#102c3c');
-    const municipalLines = new THREE.LineBasicMaterial({
-      color: '#e4f5fc', opacity: .72, transparent: true, depthTest: false, depthWrite: false
-    });
+    const municipalLines = municipalMaterial(THREE);
     const focusLine = new THREE.LineBasicMaterial({
       color: '#ffcf67', transparent: true, depthTest: false, depthWrite: false
     });
@@ -111,7 +113,7 @@
           if (x1 !== x2 || y1 !== y2) vertices.push(x1, 0, -y1, x2, 0, -y2);
         }
       }
-      if (order === 2 && material === barrioMaterial) {
+      if (material.isShaderMaterial) {
         return strokeMesh(THREE, vertices, material, order, LAYER);
       }
       const geometry = new THREE.BufferGeometry();
@@ -264,6 +266,7 @@
     }
 
     function update(camera, size, from = -1) {
+      municipalLines.uniforms.viewportSize.value.set(size.w, size.h);
       barrioMaterial.uniforms.viewportSize.value.set(size.w, size.h);
       const now = performance.now();
       if (!active || now < nextUpdate) return;
@@ -326,6 +329,6 @@
     return { setActive, setOutlines, update, retry, navy };
   }
 
-  root.PRBoundaries = Object.freeze({ strokeMaterial, strokeMesh });
+  root.PRBoundaries = Object.freeze({ municipalMaterial, strokeMesh });
   root.PRSatellite = Object.freeze({ create, layer: LAYER });
 })(window);
