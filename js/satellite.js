@@ -14,6 +14,47 @@
   const tileY = lat => (1 - Math.asinh(Math.tan(lat * Math.PI / 180)) / Math.PI) / 2;
   const parentOf = ({ z, x, y }) => ({ z: z - 1, x: x >> 1, y: y >> 1 });
 
+  function strokeMaterial(THREE, color, width) {
+    return new THREE.ShaderMaterial({
+      uniforms: { strokeWidth: { value: width }, strokeColor: { value: new THREE.Color(color) }, viewportSize: { value: new THREE.Vector2(1, 1) } },
+      vertexShader: `
+        uniform vec2 viewportSize;
+        uniform float strokeWidth;
+        attribute vec3 startPoint, endPoint;
+        varying float edge;
+        void main() {
+          vec4 a = projectionMatrix * modelViewMatrix * vec4(startPoint, 1.);
+          vec4 b = projectionMatrix * modelViewMatrix * vec4(endPoint, 1.);
+          vec2 delta = (b.xy / b.w - a.xy / a.w) * viewportSize;
+          vec2 normal = vec2(-delta.y, delta.x) / max(length(delta), .00001);
+          vec4 clip = mix(a, b, position.x);
+          edge = position.y;
+          clip.xy += normal * edge * strokeWidth / viewportSize * clip.w;
+          gl_Position = clip;
+        }`,
+      fragmentShader: `
+        varying float edge;
+        uniform vec3 strokeColor;
+        void main() { gl_FragColor = vec4(strokeColor, 1. - smoothstep(.72, 1., abs(edge))); }`,
+      side: THREE.DoubleSide, transparent: true, depthTest: false, depthWrite: false
+    });
+  }
+
+  function strokeMesh(THREE, vertices, material, order, layer) {
+    const geometry = new THREE.InstancedBufferGeometry();
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute([0,-1,0, 1,-1,0, 1,1,0, 0,1,0], 3));
+    geometry.setIndex([0,1,2, 0,2,3]);
+    const segments = new THREE.InstancedInterleavedBuffer(new Float32Array(vertices), 6);
+    geometry.setAttribute('startPoint', new THREE.InterleavedBufferAttribute(segments, 3, 0));
+    geometry.setAttribute('endPoint', new THREE.InterleavedBufferAttribute(segments, 3, 3));
+    geometry.instanceCount = vertices.length / 6;
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.layers.set(layer);
+    mesh.renderOrder = order;
+    mesh.frustumCulled = false;
+    return mesh;
+  }
+
   function imageUrl({ z, x, y }) {
     // El caché de PR tiene huecos en los niveles intermedios del panorama.
     if (z <= 8 || (z >= 12 && z <= 16)) return BASE + '/tile/' + z + '/' + y + '/' + x;
@@ -46,27 +87,7 @@
       color: '#ffcf67', transparent: true, depthTest: false, depthWrite: false
     });
     const outlines = makeOutline(municipalities.flatMap(m => m.polys), municipalLines, 3);
-    const barrioMaterial = new THREE.ShaderMaterial({
-      uniforms: { viewportSize: { value: new THREE.Vector2(1, 1) } },
-      vertexShader: `
-        uniform vec2 viewportSize;
-        attribute vec3 startPoint, endPoint;
-        varying float edge;
-        void main() {
-          vec4 a = projectionMatrix * modelViewMatrix * vec4(startPoint, 1.);
-          vec4 b = projectionMatrix * modelViewMatrix * vec4(endPoint, 1.);
-          vec2 delta = (b.xy / b.w - a.xy / a.w) * viewportSize;
-          vec2 normal = vec2(-delta.y, delta.x) / max(length(delta), .00001);
-          vec4 clip = mix(a, b, position.x);
-          edge = position.y;
-          clip.xy += normal * edge * 3.5 / viewportSize * clip.w;
-          gl_Position = clip;
-        }`,
-      fragmentShader: `
-        varying float edge;
-        void main() { gl_FragColor = vec4(vec3(1.), 1. - smoothstep(.72, 1., abs(edge))); }`,
-      side: THREE.DoubleSide, transparent: true, depthTest: false, depthWrite: false
-    });
+    const barrioMaterial = strokeMaterial(THREE, '#ffffff', 3.5);
     let barrioSource = null, barrioOutline = null;
     let selectedOutline = null;
     let requestedSelection = -1;
@@ -91,18 +112,7 @@
         }
       }
       if (order === 2 && material === barrioMaterial) {
-        const geometry = new THREE.InstancedBufferGeometry();
-        geometry.setAttribute('position', new THREE.Float32BufferAttribute([0,-1,0, 1,-1,0, 1,1,0, 0,1,0], 3));
-        geometry.setIndex([0,1,2, 0,2,3]);
-        const segments = new THREE.InstancedInterleavedBuffer(new Float32Array(vertices), 6);
-        geometry.setAttribute('startPoint', new THREE.InterleavedBufferAttribute(segments, 3, 0));
-        geometry.setAttribute('endPoint', new THREE.InterleavedBufferAttribute(segments, 3, 3));
-        geometry.instanceCount = vertices.length / 6;
-        const mesh = new THREE.Mesh(geometry, material);
-        mesh.layers.set(LAYER);
-        mesh.renderOrder = order;
-        mesh.frustumCulled = false;
-        return mesh;
+        return strokeMesh(THREE, vertices, material, order, LAYER);
       }
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -316,5 +326,6 @@
     return { setActive, setOutlines, update, retry, navy };
   }
 
+  root.PRBoundaries = Object.freeze({ strokeMaterial, strokeMesh });
   root.PRSatellite = Object.freeze({ create, layer: LAYER });
 })(window);
