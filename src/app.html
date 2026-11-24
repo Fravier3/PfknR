@@ -422,8 +422,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       <option value="oldworld">Histórico</option>
       <option value="greyscale">Escala de grises</option>
     </select>
-    <button id="t-urban-details" class="row sw-row" type="button" aria-pressed="true">Calles</button>
-    <button id="t-vegetation" class="row sw-row" type="button" aria-pressed="true">Parques y vegetación</button>
+    <button id="t-urban-details" class="row sw-row" type="button" aria-pressed="false">Calles</button>
+    <button id="t-vegetation" class="row sw-row" type="button" aria-pressed="false">Parques y vegetación</button>
     <button id="t-buildings-refresh" class="row" type="button" hidden>Actualizar calles y vegetación</button>
     <small id="poly-status" role="status" aria-live="polite" hidden></small>
     </div>
@@ -943,7 +943,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   // ---------- PolyMap: paletas MIT + edificios de OpenStreetMap 3D ----------
   const POLY = window.PolyUrban;
   const DETAIL = window.PolyDetail;
-  const URBAN = { on:false, detailGroup:null, roadsEnabled:true, vegetationEnabled:true, request:0, abort:null, oldExag:4, lastCenter:null, nextAutoAt:0 };
+  const URBAN = { on:false, detailGroup:null, roadsEnabled:false, vegetationEnabled:false, request:0, abort:null, oldExag:4, lastCenter:null, nextAutoAt:0 };
   const detailButton = $('t-urban-details'), vegetationButton = $('t-vegetation');
   const urbanVisible = () => (is3D || basemap === 'compare') && !solid;
   function updateUrbanVisibility() {
@@ -1110,6 +1110,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       URBAN[key] = !URBAN[key];
       button.setAttribute('aria-pressed', String(URBAN[key]));
       if (URBAN[key] && selected >= 0 && !URBAN.on) setUrbanMode(true);
+      else if (URBAN.on && !URBAN.roadsEnabled && !URBAN.vegetationEnabled) setUrbanMode(false);
       else updateUrbanVisibility();
     });
   }
@@ -2245,8 +2246,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   toggle('t-3d', on => {
     if (on && basemap !== 'map') setBasemap('map');
     is3D = on; applyControlMode(); setHint();
-    if (on && selected>=0 && !URBAN.on && POLY) setUrbanMode(true);
-    else if (!on && URBAN.on) setUrbanMode(false);
+    if (on && solid) $('t-solid').click();
+    if (!on && URBAN.on) setUrbanMode(false);
     updateUrbanVisibility();
     $('t-spin').hidden = !on; if (!on) $('t-spin').setAttribute('aria-pressed', false);
     $('t-exag-wrap').hidden = !on || solid;

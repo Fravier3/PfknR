@@ -142,28 +142,23 @@ try {
     if(selection<0) throw Error('No se encontró pueblo '+town);
     await page.waitForFunction(name=>document.querySelector('#i-name')?.textContent===name,town,{timeout:15000});
     if (await page.locator('#t-3d').getAttribute('aria-pressed') !== 'true') await page.locator('#t-3d').click();
-    await page.waitForFunction(()=>{
-      const s=document.querySelector('#city-3d-status')?.textContent||'';
-      return /vías reales|Calles\/vegetación no disponibles|Edificios sin cargar|No hay huellas/.test(s);
-    },null,{timeout:50000}).catch(e=>console.log('STATUS_TIMEOUT '+town+': '+e.message));
     await page.waitForTimeout(1400);
-    const status=await page.locator('#city-3d-status').textContent();
+    if (await page.locator('#city-3d-status').isVisible()) throw Error('3D activó el casco urbano en ' + town);
+    if (await page.locator('#t-exag-wrap').evaluate(el => el.hidden)) throw Error('Falta el control de relieve');
     const shot=await page.locator('#scene').screenshot();
     const frame=await page.screenshot();
     const slug=town.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
     writeFileSync(out+'/'+slug+'-canvas.png',shot);
     writeFileSync(out+'/'+slug+'-ipad.png',frame);
     const metric=assess(shot);
-    results.push({town,status,metric});
-    console.log('URBAN_RESULT '+JSON.stringify({town,status,metric}));
+    results.push({town,metric});
+    console.log('URBAN_RESULT '+JSON.stringify({town,metric}));
   }
   console.log('NETWORK_ERRORS '+JSON.stringify(badResponses));
   console.log('JS_ERRORS '+JSON.stringify(errors.slice(0,20)));
-  if(results.some(x=>!/vías reales/.test(x.status))) throw Error('No se cargaron las nuevas vías / vegetación en alguna ciudad');
-  if(results.some(x=> Number(x.status.match(/(\d+) vías reales/)?.[1]||0)<10)) throw Error('Vías reales insuficientes');
   if(results.some(x=>x.metric.colors16<30)) throw Error('Canvas parece tener superficie de color uniforme');
   if(errors.some(x=>/ReferenceError|TypeError|SyntaxError|INVALID_OPERATION/.test(x)))throw Error('Errores JS durante la prueba');
-  console.log('RESULT: PASS. Vías y vegetación cargadas en cinco regiones de Puerto Rico.');
+  console.log('RESULT: PASS. Relieve 3D activado en cinco regiones de Puerto Rico.');
 } catch(e){
   console.error('RESULT: FAIL '+e.stack);
   throw e;

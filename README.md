@@ -7,7 +7,7 @@ Niveles de zoom: isla → municipio (ficha y barrios pintados) → barrio (subba
 ## Vistas
 
 - **Plano** (por defecto): vista desde arriba, norte arriba; solo se mueve y se acerca.
-- **3D**: permite inclinar y girar; aparecen "Girar" (giro automático) y el control de relieve (×1 a ×8).
+- **3D**: muestra el relieve de las montañas y permite inclinar y girar el mapa desde el punto actual; aparecen "Girar" (giro automático) y el control de relieve (×1 a ×8).
 - **Sólido**: quita texturas y relieve; la tierra queda verde sólido y el mar azul liso. Se combina con plano o 3D.
 - **Nombres**, **Límites** y **Regiones** son capas que se prenden y apagan.
 
