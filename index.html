@@ -292,11 +292,6 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 #t-buildings-refresh { font-size:12px; }
 
 /* Acceso visible a ciudad 3D incluso con ficha compacta; no utiliza blur. */
-#city-3d { display:block; width:100%; min-height:39px; padding:9px 12px;
-  border:1px solid #0b3a52; border-radius:9px; background:#0b3a52; color:#fff;
-  font:600 13px/1.25 var(--f-body); cursor:pointer; touch-action:manipulation; }
-#city-3d:focus-visible { outline:2px solid #e4502a; outline-offset:3px; }
-#city-3d[disabled] { opacity:.5; cursor:not-allowed; }
 #city-3d-status { margin:4px 0 5px; font:500 12px/1.4 var(--f-body); color:var(--muted); }
 #city-3d-status[hidden] { display:none; }
 
@@ -320,7 +315,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 #photo-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 3px 10px; font-size: 11px; color: var(--muted); }
 #photo-meta a { color: inherit; text-underline-offset: 2px; }
 #photo-retry { min-height: 32px; }
-.city-views { display: grid; grid-template-columns: 1.35fr 1fr; gap: 6px; }
+.city-views { display: grid; grid-template-columns: 1fr; gap: 6px; }
 #city-photo { color: #0b3a52; background: #e4f0f4; border-color: #92b2bf; line-height: 1.25; }
 #map-compare { position: absolute; inset: 0; z-index: 2; pointer-events: none; --split: 50%; --split-y: 50%; }
 .split-line { position: absolute; inset-block: 0; left: var(--split); width: 2px; background: #fff; box-shadow: 0 0 6px #102c3c; }
@@ -386,7 +381,6 @@ button { touch-action: manipulation; }
     </div>
     <p class="sum" id="i-sum"></p>
     <div class="city-views">
-      <button id="city-3d" type="button">Ver ciudad y edificios en 3D</button>
       <button id="city-photo" type="button">Casco en satélite</button>
     </div>
     <p id="city-3d-status" role="status" aria-live="polite" hidden></p>
@@ -451,10 +445,9 @@ button { touch-action: manipulation; }
       <option value="oldworld">Histórico</option>
       <option value="greyscale">Escala de grises</option>
     </select>
-    <button id="t-buildings" class="row sw-row" type="button" aria-pressed="false">Edificios 3D · PolyMap</button>
     <button id="t-urban-details" class="row sw-row" type="button" aria-pressed="true">Calles</button>
     <button id="t-vegetation" class="row sw-row" type="button" aria-pressed="true">Parques y vegetación</button>
-    <button id="t-buildings-refresh" class="row" type="button" hidden>Actualizar edificios de esta zona</button>
+    <button id="t-buildings-refresh" class="row" type="button" hidden>Actualizar calles y vegetación</button>
     <small id="poly-status" role="status" aria-live="polite" hidden></small>
     </div>
 
@@ -468,7 +461,7 @@ button { touch-action: manipulation; }
     <button id="t-refresh" class="row" type="button">Buscar actualizaciones</button>
   </div>
   <div id="legend" class="panel" hidden><span class="t">Regiones</span></div>
-  <div id="credit">Edificios 3D: © OpenStreetMap · Estilos PolyMap (MIT) · Límites: U.S. Census Bureau · Sectores y rutas: © OpenStreetMap · Clima: Open-Meteo · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
+  <div id="credit">Estilos PolyMap (MIT) · Límites: U.S. Census Bureau · Sectores y rutas: © OpenStreetMap · Clima: Open-Meteo · Relieve: DEM 30 m (USGS), render de izette1/SWCI</div>
   <div id="tip" hidden></div>
   <div id="note" class="panel" role="status" hidden></div>
   <div id="route" class="panel" hidden>
@@ -508,7 +501,7 @@ button { touch-action: manipulation; }
 <script src="libs/motion.js"></script>
 <script src="js/polymap-urban.js"></script>
 <script src="js/polymap-detail.js?v=1.7.0"></script>
-<script src="js/satellite.js?v=1.7.1"></script>
+<script src="js/satellite.js?v=1.7.2"></script>
 <script>
 (async () => {
   'use strict';
@@ -973,11 +966,10 @@ button { touch-action: manipulation; }
   // ---------- PolyMap: paletas MIT + edificios de OpenStreetMap 3D ----------
   const POLY = window.PolyUrban;
   const DETAIL = window.PolyDetail;
-  const URBAN = { on:false, group:null, detailGroup:null, buildingsEnabled:true, roadsEnabled:true, vegetationEnabled:true, request:0, abort:null, oldExag:4, buildings:[], lastCenter:null, nextAutoAt:0 };
+  const URBAN = { on:false, detailGroup:null, roadsEnabled:true, vegetationEnabled:true, request:0, abort:null, oldExag:4, lastCenter:null, nextAutoAt:0 };
   const detailButton = $('t-urban-details'), vegetationButton = $('t-vegetation');
   const urbanVisible = () => (is3D || basemap === 'compare') && !solid;
   function updateUrbanVisibility() {
-    if (URBAN.group) URBAN.group.visible = urbanVisible() && URBAN.buildingsEnabled;
     if (URBAN.detailGroup) {
       URBAN.detailGroup.visible = urbanVisible();
       URBAN.detailGroup.getObjectByName('roads').visible = URBAN.roadsEnabled;
@@ -990,7 +982,7 @@ button { touch-action: manipulation; }
     const h=hAt(x,y);
     return selected>=0 && DATA[selected].island ? Math.max(h,ISL_H+.001) : h;
   }
-  const stylePicker = $('pm-style'), urbanButton = $('t-buildings');
+  const stylePicker = $('pm-style');
   const urbanRefresh = $('t-buildings-refresh'), urbanStatus = $('poly-status');
   const cityStatus = $('city-3d-status');
   function cityMessage(message) {
@@ -1013,7 +1005,7 @@ button { touch-action: manipulation; }
     const saved = localStorage.getItem('pfknr-poly-style');
     if (POLY && POLY.THEMES[saved]) polyStyle = saved;
   } catch (e) { /* almacenamiento opcional */ }
-  if (!POLY) { urbanButton.disabled = true; urbanStatus.hidden = false; urbanStatus.textContent = 'Capa urbana no disponible.'; }
+  if (!POLY) { urbanStatus.hidden = false; urbanStatus.textContent = 'Capa urbana no disponible.'; }
 
   function setPolyStyle(key) {
     if (!POLY || !POLY.THEMES[key]) return;
@@ -1029,10 +1021,6 @@ button { touch-action: manipulation; }
     }
     terrainMat.color.set('#ffffff').lerp(new THREE.Color(pal.land),key==='original'?0:.38);
     uni.solidGreen.value.set(key==='original'?'#6cad5c':pal.park);
-    if (URBAN.group) {
-      if (typeof POLY.recolorGroup==='function') POLY.recolorGroup(URBAN.group,pal.building);
-      else URBAN.group.userData.polyUrbanMaterial?.color.set(pal.building);
-    }
     applyTheme();
     stylePicker.value = key;
     try { localStorage.setItem('pfknr-poly-style',key); } catch(e) {}
@@ -1043,54 +1031,35 @@ button { touch-action: manipulation; }
   function clearUrban() {
     URBAN.request++;
     URBAN.abort?.abort(); URBAN.abort = null;
-    if (URBAN.group) POLY.disposeGroup(URBAN.group);
     if (URBAN.detailGroup && DETAIL) DETAIL.dispose(URBAN.detailGroup);
-    URBAN.group = null; URBAN.detailGroup=null; URBAN.buildings=[];
+    URBAN.detailGroup = null;
     URBAN.lastCenter=null;
   }
-  async function loadUrbanAt(lat, lon, { focus = false } = {}) {
-    if (!URBAN.on || !POLY || (!is3D && basemap !== 'compare')) return;
+  async function loadUrbanAt(lat, lon) {
+    if (!URBAN.on || !DETAIL || (!is3D && basemap !== 'compare')) return;
     clearUrban();
     URBAN.lastCenter = proj(lon, lat);
     URBAN.nextAutoAt = performance.now() + 12000;
     const ticket = URBAN.request, ctrl = new AbortController();
     URBAN.abort = ctrl;
-    cityMessage('Descargando edificios, calles y zonas verdes…');
-    const [buildings, detail] = await Promise.allSettled([
-      POLY.loadBuildings(lat, lon, { signal: ctrl.signal }),
-      DETAIL ? DETAIL.load(lat, lon, ctrl.signal) : Promise.resolve(null)
-    ]);
-    if (ticket !== URBAN.request || !URBAN.on) return;
-    URBAN.abort = null;
-    const messages = [];
-    if (buildings.status === 'fulfilled') {
-      const ways = buildings.value;
-      const result = POLY.makeGroup({ ways, THREE, project: proj, groundAt: urbanGroundAt,
-        center: { lat, lon }, maxBuildings: small ? 220 : 450, color: POLY.THEMES[polyStyle].building });
-      URBAN.group = result.group;
-      URBAN.buildings = ways;
-      exGroup.add(URBAN.group);
-      messages.push(result.count + ' edificios 3D');
-      if (focus && is3D && result.focus && result.count) {
-        const f = result.focus;
-        const target = new THREE.Vector3(f.x, urbanGroundAt(f.x, f.y) + .007, -f.y);
-        const direction = new THREE.Vector3(.14, .86, .52).normalize();
-        flyTo(target, target.clone().add(direction.multiplyScalar(small ? .48 : .62)), 850);
-      }
-    } else messages.push('Edificios no disponibles');
-    if (detail.status === 'fulfilled' && detail.value) {
-      const context = DETAIL.make({
-        THREE, features: detail.value, groundAt: urbanGroundAt, project: proj,
-        center: { lat, lon }, buildings: URBAN.buildings, small, style: polyStyle
-      });
+    cityMessage('Descargando calles y zonas verdes…');
+    try {
+      const features = await DETAIL.load(lat, lon, ctrl.signal);
+      if (ticket !== URBAN.request || !URBAN.on) return;
+      const context = DETAIL.make({ THREE, features, groundAt: urbanGroundAt,
+        project: proj, center: { lat, lon }, small, style: polyStyle });
       URBAN.detailGroup = context.group;
-      exGroup.add(URBAN.detailGroup);
-      messages.push(context.roads + ' vías reales', context.parks + ' zonas verdes',
-        context.trees + ' árboles ilustrativos');
-    } else if (DETAIL) messages.push('Calles y vegetación no disponibles');
+      exGroup.add(context.group);
+      cityMessage(context.roads + ' vías reales · ' + context.parks + ' zonas verdes');
+    } catch (error) {
+      if (ctrl.signal.aborted || ticket !== URBAN.request) return;
+      cityMessage('Calles y vegetación no disponibles.');
+    } finally {
+      if (ticket === URBAN.request) URBAN.abort = null;
+    }
     updateUrbanVisibility();
     urbanSurface(true);
-    cityMessage(messages.join(' · '));
+
   }
 
   // Utilizamos barrio-pueblo, no el centro geográfico del municipio:
@@ -1128,24 +1097,23 @@ button { touch-action: manipulation; }
     direction.y=Math.max(.68,direction.y);
     direction.normalize();
     flyTo(target,target.clone().add(direction.multiplyScalar(.46)),1000);
-    loadUrbanAt(lat, lon, { focus: true });
+    loadUrbanAt(lat, lon);
   }
 
   function setUrbanMode(on) {
     if (on && selected<0) {
-      note('Selecciona un pueblo y luego activa Edificios 3D.',4200);
+      note('Selecciona un pueblo y luego activa la vista 3D.',4200);
       return;
     }
     if (on===URBAN.on) { if (on) showUrbanForSelected(); return; }
     URBAN.on=on;
-    urbanButton.setAttribute('aria-pressed', String(on && URBAN.buildingsEnabled));
     urbanRefresh.hidden=!on;
     if (on) {
       URBAN.oldExag=EXS;
       if (!is3D && basemap === 'map') $('t-3d').click();
       if (solid) $('t-solid').click();
       camera.near=.015; camera.far=1800; camera.updateProjectionMatrix();
-      controls.minDistance=.15;
+      controls.minDistance = basemap === 'map' ? .15 : photoMinDistance();
       setExag(1); $('t-exag').value='1';
       showUrbanForSelected();
     } else {
@@ -1153,22 +1121,12 @@ button { touch-action: manipulation; }
       urbanSurface(false);
       camera.near = basemap === 'map' ? 2 : .015;
       camera.far = 6000; camera.updateProjectionMatrix();
-      controls.minDistance = basemap === 'map' ? 8 : .15;
+      controls.minDistance = basemap === 'map' ? 8 : photoMinDistance();
       setExag(URBAN.oldExag); $('t-exag').value=String(URBAN.oldExag);
       if (basemap === 'map' && camera.position.distanceTo(controls.target)<9)
         flyTo(controls.target.clone(),controls.target.clone().add(viewDir().multiplyScalar(13)),700);
     }
   }
-  urbanButton.addEventListener('click', () => {
-    if (!URBAN.on) {
-      URBAN.buildingsEnabled = true;
-      setUrbanMode(true);
-    } else {
-      URBAN.buildingsEnabled = !URBAN.buildingsEnabled;
-      urbanButton.setAttribute('aria-pressed', String(URBAN.buildingsEnabled));
-      updateUrbanVisibility();
-    }
-  });
   for (const [button, key] of [[detailButton, 'roadsEnabled'], [vegetationButton, 'vegetationEnabled']]) {
     button.disabled = !DETAIL || !POLY;
     button.addEventListener('click', () => {
@@ -1183,17 +1141,6 @@ button { touch-action: manipulation; }
     const [lon,lat]=unproj(controls.target.x,-controls.target.z);
     loadUrbanAt(lat,lon);
   });
-  $('city-3d').disabled=!POLY;
-  $('city-3d').addEventListener('click',()=> {
-    if (!POLY || selected < 0) return;
-    URBAN.buildingsEnabled = true;
-    if (!is3D) $('t-3d').click();
-    else setUrbanMode(true);
-    urbanButton.setAttribute('aria-pressed', 'true');
-    updateUrbanVisibility();
-    closeSheets();
-  });
-
   // ---------- Etiquetas ----------
   const labelsEl = $('labels');
   const muni = DATA.map((m, i) => {
@@ -2389,7 +2336,7 @@ button { touch-action: manipulation; }
   const compare = $('map-compare'), split = $('map-split'), photoButton = $('map-photo');
   const modes = [...document.querySelectorAll('[data-basemap]')];
   const imagery = PRSatellite.create({
-    THREE, scene, project: proj, unproject: unproj, municipalities: DATA,
+    THREE, scene, project: proj, unproject: unproj, municipalities: DATA, pixelRatio: renderer.getPixelRatio(),
     onStatus(status) {
       $('photo-status').textContent = ({
         loading: 'Cargando imágenes…',
@@ -2399,6 +2346,10 @@ button { touch-action: manipulation; }
       $('photo-retry').hidden = status !== 'error';
     }
   });
+  // Distancia en km para mostrar al menos medio metro de terreno por píxel CSS.
+  function photoMinDistance() {
+    return size.h * .0005 / (2 * Math.tan(THREE.MathUtils.degToRad(FOV0 / 2)));
+  }
   function setBasemap(mode) {
     if (basemap === mode) return;
     const wasPhoto = basemap !== 'map';
@@ -2420,7 +2371,7 @@ button { touch-action: manipulation; }
       imagery.setActive(photo);
       camera.near = photo ? .015 : 2;
       camera.updateProjectionMatrix();
-      controls.minDistance = photo ? .15 : 8;
+      controls.minDistance = photo ? photoMinDistance() : 8;
       center.y = 0;
       flyTo(center, center.clone().add(viewDir().multiplyScalar(Math.max(distance, controls.minDistance))), 0);
     }
@@ -2487,7 +2438,7 @@ button { touch-action: manipulation; }
   // ---------- Bucle ----------
   function resize() {
     const w = app.clientWidth, h = app.clientHeight; if (!w || !h) return;
-    size = { w, h }; renderer.setSize(w, h, false); updateViewOffset(true);
+    size = { w, h }; if (basemap !== 'map') controls.minDistance = photoMinDistance(); renderer.setSize(w, h, false); updateViewOffset(true);
   }
   new ResizeObserver(resize).observe(app); resize();
   applyTheme();
@@ -2555,7 +2506,7 @@ button { touch-action: manipulation; }
 })();
 </script>
 
-<script>window.APP_VERSION = '1.7.1';</script>
+<script>window.APP_VERSION = '1.7.2';</script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

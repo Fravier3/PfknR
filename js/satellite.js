@@ -28,7 +28,7 @@
     return (overview ? BASE + '/export' : DETAIL) + '?' + params;
   }
 
-  function create({ THREE, scene, project, unproject, municipalities, onStatus }) {
+  function create({ THREE, scene, project, unproject, municipalities, pixelRatio = 1, onStatus }) {
     const tiles = new Map();
     const photo = new THREE.Group();
     const tileGroup = new THREE.Group();
@@ -196,8 +196,10 @@
         bounds.expandByPoint(place);
       }
       const resolution = (bounds.max.x - bounds.min.x) / (size.w * (1 - from) / 2);
-      const zoom = Math.round(Math.log2(1 / (resolution * 256)));
-      const z = THREE.MathUtils.clamp(zoom, 7, 18);
+      const scale = Math.log2(1 / (resolution * 256));
+      const density = scale >= 15 ? Math.min(1.5, pixelRatio) : 1;
+      const zoom = Math.round(scale + Math.log2(density));
+      const z = THREE.MathUtils.clamp(zoom, 7, 19);
       const count = 2 ** z;
       return {
         z, x0: Math.floor(bounds.min.x * count), x1: Math.floor(bounds.max.x * count),

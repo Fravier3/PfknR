@@ -139,7 +139,7 @@ try {
     const selection=await page.evaluate(town=>window.PRMap.select(town),town);
     if(selection<0) throw Error('No se encontró pueblo '+town);
     await page.waitForFunction(name=>document.querySelector('#i-name')?.textContent===name,town,{timeout:15000});
-    await page.locator('#city-3d').click();
+    if (await page.locator('#t-3d').getAttribute('aria-pressed') !== 'true') await page.locator('#t-3d').click();
     await page.waitForFunction(()=>{
       const s=document.querySelector('#city-3d-status')?.textContent||'';
       return /vías reales|Calles\/vegetación no disponibles|Edificios sin cargar|No hay huellas/.test(s);
@@ -158,12 +158,10 @@ try {
   console.log('NETWORK_ERRORS '+JSON.stringify(badResponses));
   console.log('JS_ERRORS '+JSON.stringify(errors.slice(0,20)));
   if(results.some(x=>!/vías reales/.test(x.status))) throw Error('No se cargaron las nuevas vías / vegetación en alguna ciudad');
-  if(results.some(x=> !/\d+ edificios 3D/.test(x.status) || Number(x.status.match(/(\d+) edificios 3D/)?.[1]||0)<30)) throw Error('No se cargaron suficientes edificios');
   if(results.some(x=> Number(x.status.match(/(\d+) vías reales/)?.[1]||0)<10)) throw Error('Vías reales insuficientes');
   if(results.some(x=>x.metric.colors16<30)) throw Error('Canvas parece tener superficie de color uniforme');
-  if(results.some(x=>x.metric.roofPixels<30)) throw Error('Edificios no aparecen en el área principal del mapa (cámara mal encuadrada)');
   if(errors.some(x=>/ReferenceError|TypeError|SyntaxError|INVALID_OPERATION/.test(x)))throw Error('Errores JS durante la prueba');
-  console.log('RESULT: PASS. Edificios, vías y vegetación cargados en cinco regiones de Puerto Rico.');
+  console.log('RESULT: PASS. Vías y vegetación cargadas en cinco regiones de Puerto Rico.');
 } catch(e){
   console.error('RESULT: FAIL '+e.stack);
   throw e;
