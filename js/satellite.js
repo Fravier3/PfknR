@@ -2,7 +2,7 @@
 (function (root) {
   'use strict';
 
-  const BASE = 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile';
+  const BASE = 'https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer';
   const DETAIL = 'https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPPlus/ImageServer/exportImage';
   const R = 6378137;
   const HALF_WORLD = Math.PI * R;
@@ -15,15 +15,17 @@
   const parentOf = ({ z, x, y }) => ({ z: z - 1, x: x >> 1, y: y >> 1 });
 
   function imageUrl({ z, x, y }) {
-    if (z <= 16) return BASE + '/' + z + '/' + y + '/' + x;
+    // El caché de PR tiene huecos en los niveles intermedios del panorama.
+    if (z <= 8 || (z >= 12 && z <= 16)) return BASE + '/tile/' + z + '/' + y + '/' + x;
+    const overview = z <= 11;
     const size = 2 ** z;
     const east = col => Math.round((2 * col / size - 1) * HALF_WORLD * 100) / 100;
     const north = row => Math.round((1 - 2 * row / size) * HALF_WORLD * 100) / 100;
     const params = new URLSearchParams({
       bbox: [east(x), north(y + 1), east(x + 1), north(y)].join(','),
-      bboxSR: '3857', imageSR: '3857', size: '256,256', format: 'png32', f: 'image'
+      bboxSR: '3857', imageSR: '3857', size: '256,256', format: overview ? 'jpg' : 'png32', f: 'image'
     });
-    return DETAIL + '?' + params;
+    return (overview ? BASE + '/export' : DETAIL) + '?' + params;
   }
 
   function create({ THREE, scene, project, unproject, municipalities, onStatus }) {

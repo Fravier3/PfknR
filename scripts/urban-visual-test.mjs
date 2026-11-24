@@ -92,6 +92,27 @@ async function checkSatellite() {
   if (await divider.isVisible()) throw Error('El divisor sigue visible al volver al mapa');
   console.log('SATELLITE PASS ' + JSON.stringify({ towns: ['Cayey', 'Culebra'], changed: changed / count }));
 }
+async function checkPhoneOverview() {
+  const mobile = await browser.newPage({
+    viewport: {width:390, height:844}, deviceScaleFactor:1, isMobile:true, hasTouch:true,
+    reducedMotion:'reduce', serviceWorkers:'block'
+  });
+  try {
+    await mobile.goto('http://127.0.0.1:8765/', {waitUntil:'domcontentloaded'});
+    await mobile.locator('#loading').waitFor({state:'hidden'});
+    await mobile.locator('#map-photo').click();
+    await mobile.waitForFunction(() => document.querySelector('#photo-status').textContent === '', null, {timeout:30000});
+    const overview = mobile.waitForResponse(r => r.ok() && /USGSImageryOnly\/MapServer\/export\?/.test(r.url()), {timeout:30000});
+    await mobile.evaluate(() => PRMap.select('Arecibo'));
+    await overview;
+    await mobile.waitForFunction(() => document.querySelector('#photo-status').textContent === '', null, {timeout:30000});
+    const image = await mobile.screenshot({animations:'disabled'});
+    const colors = assess(image).colors16;
+    if (colors < 28) throw Error('No se dibuja la vista general satelital en teléfono (' + colors + ' colores)');
+    writeFileSync(out + '/satelite-iphone.png', image);
+    console.log('PHONE SATELLITE PASS ' + colors);
+  } finally { await mobile.close(); }
+}
 const results=[];
 try {
   await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded',timeout:60000});
@@ -102,6 +123,7 @@ try {
   });
   console.log('RENDERER '+JSON.stringify(gl));
   await checkSatellite();
+  await checkPhoneOverview();
   for (const town of ['Cayey','Loíza','Ponce','Vieques','Culebra']) {
     const selection=await page.evaluate(town=>window.PRMap.select(town),town);
     if(selection<0) throw Error('No se encontró pueblo '+town);
