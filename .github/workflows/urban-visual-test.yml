@@ -25,11 +25,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Instalar navegador y utilidades
-        run: |
-          npm install --no-save playwright@1.56.1 pngjs@7.0.0
-          npx playwright install --with-deps chromium
+      - name: Instalar utilidades
+        run: npm install --no-save playwright@1.56.1 pngjs@7.0.0
       - name: Probar PFKNR en pantalla de iPad
+        env:
+          PFKNR_BROWSER_CHANNEL: chrome
         run: |
           python3 -m http.server 8765 --bind 127.0.0.1 > /tmp/pfknr-http.log 2>&1 &
           sleep 2

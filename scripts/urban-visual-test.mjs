@@ -6,6 +6,7 @@ const out = 'artifacts/urban';
 mkdirSync(out, {recursive:true});
 const browser = await chromium.launch({
   headless: true,
+  channel: process.env.PFKNR_BROWSER_CHANNEL || undefined,
   args: ['--use-gl=angle','--use-angle=swiftshader','--enable-webgl','--ignore-gpu-blocklist','--enable-unsafe-swiftshader','--disable-dev-shm-usage']
 });
 const context=await browser.newContext({
