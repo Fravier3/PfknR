@@ -95,10 +95,15 @@ async function checkSatellite() {
 async function checkPhoneOverview() {
   const mobile = await browser.newPage({
     viewport: {width:390, height:844}, deviceScaleFactor:1, isMobile:true, hasTouch:true,
-    reducedMotion:'reduce', serviceWorkers:'block'
+    reducedMotion:'reduce'
+  });
+  mobile.on('pageerror', error => console.log('PHONE JS ' + error.stack));
+  mobile.on('console', message => {
+    if (message.type() === 'error') console.log('PHONE CONSOLE ' + message.text());
   });
   try {
     await mobile.goto('http://127.0.0.1:8765/', {waitUntil:'domcontentloaded'});
+    await mobile.waitForFunction(() => !!window.PRMap, null, {timeout:45000});
     await mobile.locator('#loading').waitFor({state:'hidden'});
     await mobile.locator('#map-photo').click();
     await mobile.waitForFunction(() => document.querySelector('#photo-status').textContent === '', null, {timeout:30000});
@@ -111,10 +116,17 @@ async function checkPhoneOverview() {
     if (colors < 28) throw Error('No se dibuja la vista general satelital en teléfono (' + colors + ' colores)');
     writeFileSync(out + '/satelite-iphone.png', image);
     console.log('PHONE SATELLITE PASS ' + colors);
+  } catch (error) {
+    console.error('PHONE STATE ' + JSON.stringify(await mobile.evaluate(() => ({
+      loading: document.querySelector('#loading')?.textContent?.trim(),
+      photo: document.querySelector('#photo-status')?.textContent
+    }))));
+    throw error;
   } finally { await mobile.close(); }
 }
 const results=[];
 try {
+  await checkPhoneOverview();
   await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded',timeout:60000});
   await page.waitForFunction(()=>!!window.PRMap,{timeout:90000});
   const gl=await page.evaluate(()=>{
@@ -123,7 +135,6 @@ try {
   });
   console.log('RENDERER '+JSON.stringify(gl));
   await checkSatellite();
-  await checkPhoneOverview();
   for (const town of ['Cayey','Loíza','Ponce','Vieques','Culebra']) {
     const selection=await page.evaluate(town=>window.PRMap.select(town),town);
     if(selection<0) throw Error('No se encontró pueblo '+town);
