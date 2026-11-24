@@ -114,7 +114,11 @@ function seeded(seed){
 }
 function make(options){
  const {THREE,features,groundAt,project,center,buildings,small,style}=options;
- const group=new THREE.Group();
+ const group = new THREE.Group();
+ const roadLayer = new THREE.Group(), vegetation = new THREE.Group();
+ roadLayer.name = 'roads';
+ vegetation.name = 'vegetation';
+ group.add(roadLayer, vegetation);
  const roads=features?.roads||[],green=features?.green||[];
  const projectedRoads=[], verts=[],edgeVerts=[],coloredVerts=[];
  const asPt=p=>Array.isArray(p)&&p.length>=2&&p.every(Number.isFinite)?project(p[0],p[1]):null;
@@ -147,7 +151,7 @@ function make(options){
   geo.setAttribute('position',new THREE.Float32BufferAttribute(values,3));
   geo.computeVertexNormals();
   const mat=new THREE.MeshStandardMaterial({color,roughness,side:THREE.DoubleSide,depthWrite:true});
-  const mesh=new THREE.Mesh(geo,mat);mesh.receiveShadow=true;group.add(mesh);
+  const mesh=new THREE.Mesh(geo,mat);mesh.receiveShadow=true;roadLayer.add(mesh);
  }
  meshFrom(edgeVerts, style==='modern'?'#c4c2b8':'#ad9f87',.96);
  meshFrom(verts, style==='cyberpunk'?'#303644':'#5a6062',.91);
@@ -179,7 +183,7 @@ function make(options){
    }
    geo.computeVertexNormals();
    const mat=new THREE.MeshStandardMaterial({color:typ==='forest'?'#4f8b53':typ==='orchard'?'#7b9e48':'#87a66b',side:THREE.DoubleSide,roughness:1});
-   group.add(new THREE.Mesh(geo,mat));parkCount++;
+   vegetation.add(new THREE.Mesh(geo,mat));parkCount++;
    greenRings.push({outer:outer,typ});
   }
  }
@@ -235,7 +239,7 @@ function make(options){
    dummy.position.set(x,h+th+.0018,-y);dummy.scale.set(cr,cr*1.22,cr);dummy.updateMatrix();foliage.setMatrixAt(i,dummy.matrix);
   });
   trunk.instanceMatrix.needsUpdate=true;foliage.instanceMatrix.needsUpdate=true;
-  group.add(trunk,foliage);
+  vegetation.add(trunk,foliage);
  }
  return {group,roads:projectedRoads.length,parks:parkCount,trees:spots.length,approximateTrees:true};
 }

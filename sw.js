@@ -1,10 +1,10 @@
 // Service worker de Puerto Rico 3D: precache del núcleo, red primero para index y version.json,
 // y "stale-while-revalidate" para los datos de barrios, comunidades, subbarrios y sectores.
-const CACHE = 'pfknr-v1.6.2';
+const CACHE = 'pfknr-v1.7.0';
 const DATA_CACHE = 'pfknr-datos';   // lo que se guarda con "Guardar todo para usar sin internet"
 const CORE = [
   './', './index.html', './manifest.webmanifest', './version.json', './favicon.png',
-  './css/fonts.css', './js/pwa.js', './js/polymap-urban.js', './js/polymap-detail.js',
+  './css/fonts.css', './js/pwa.js', './js/polymap-urban.js', './js/polymap-detail.js?v=1.7.0', './js/satellite.js?v=1.7.0',
   './libs/three.min.js', './libs/OrbitControls.js', './libs/motion.js',
   './libs/fonts/inter-400.woff2', './libs/fonts/inter-500.woff2', './libs/fonts/inter-600.woff2', './libs/fonts/inter-700.woff2',
   './libs/fonts/sora-500.woff2', './libs/fonts/sora-700.woff2', './libs/fonts/ibm-plex-mono-400.woff2', './libs/fonts/ibm-plex-mono-500.woff2',
@@ -18,7 +18,7 @@ self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE)));
 });
 self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE && k !== DATA_CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith('pfknr-v') && k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener('message', e => { if (e.data === 'SKIP_WAITING') self.skipWaiting(); });
 

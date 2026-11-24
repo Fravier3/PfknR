@@ -286,12 +286,54 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 #city-3d-status { margin:4px 0 5px; font:500 12px/1.4 var(--f-body); color:var(--muted); }
 #city-3d-status[hidden] { display:none; }
 
-
+/* Selector del mapa base y controles sobre la fotografía. */
+#finder, #sheet-layers {
+  --panel: #f8fbfa; backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+:root[data-theme="dark"] :is(#finder, #sheet-layers) { --panel: #10252d; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) :is(#finder, #sheet-layers) { --panel: #10252d; }
+}
+#sheet-layers { max-height: calc(100% - var(--above-tabs) - max(16px, env(safe-area-inset-top))); overflow-y: auto; overscroll-behavior: contain; }
+#sheet-layers :is(#map-only-layers, #map-urban-layers) { display: grid; gap: 2px; }
+.map-options { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; padding: 4px; background: var(--bg); border-radius: 12px; }
+.map-options button, #map-photo, #city-photo, #photo-retry {
+  min-height: 40px; padding: 4px 10px; border: 1px solid transparent; border-radius: 8px;
+  background: transparent; color: var(--ink); font: 650 13px var(--f-body); cursor: pointer;
+}
+.map-options button[aria-pressed="true"], #map-photo[aria-pressed="true"] { background: #0b3a52; color: #fff; }
+#map-photo, #city-photo, #photo-retry { border-color: var(--line); }
+#photo-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 3px 10px; font-size: 11px; color: var(--muted); }
+#photo-meta a { color: inherit; text-underline-offset: 2px; }
+#photo-retry { min-height: 32px; }
+.city-views { display: grid; grid-template-columns: 1.35fr 1fr; gap: 6px; }
+#city-photo { color: #0b3a52; background: #e4f0f4; border-color: #92b2bf; line-height: 1.25; }
+#map-compare { position: absolute; inset: 0; z-index: 2; pointer-events: none; --split: 50%; --split-y: 50%; }
+.split-line { position: absolute; inset-block: 0; left: var(--split); width: 2px; background: #fff; box-shadow: 0 0 6px #102c3c; }
+#map-split {
+  appearance: none; -webkit-appearance: none; pointer-events: auto; touch-action: none; cursor: ew-resize;
+  position: absolute; top: var(--split-y); left: -22px; width: calc(100% + 44px); height: 44px;
+  margin: 0; transform: translateY(-50%); background: transparent;
+}
+#map-split::-webkit-slider-thumb {
+  appearance: none; -webkit-appearance: none; width: 44px; height: 44px; border-radius: 50%;
+  border: 3px solid #fff; background: #0b3a52; box-shadow: 0 2px 8px #102c3c80;
+}
+#map-split::-moz-range-thumb { width: 38px; height: 38px; border-radius: 50%; border: 3px solid #fff; background: #0b3a52; }
+#map-split:focus-visible { outline: 2px solid #ffcf67; outline-offset: 2px; }
+#map-compare::after {
+  content: "‹ ›"; position: absolute; left: var(--split); top: var(--split-y);
+  transform: translate(-50%, -52%); color: #fff; font: 700 20px var(--f-body);
+}
 </style>
 
 <div id="app">
   <canvas id="scene" aria-label="Mapa 3D interactivo de Puerto Rico con relieve y sus 78 municipios"></canvas>
   <div id="labels" aria-hidden="true"></div>
+  <div id="map-compare" hidden>
+    <div class="split-line" aria-hidden="true"></div>
+    <input id="map-split" type="range" min="0" max="100" value="50" aria-label="Proporción de mapa y satélite">
+  </div>
   <div id="loading" role="status"><div class="splash">
     <img src="icons/icon-192.png" alt="" width="96" height="96">
     <h1>Puerto Rico 3D</h1>
@@ -300,7 +342,14 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   </div></div>
 
   <header id="finder" class="panel">
-    <div class="brand"><h1>Puerto Rico</h1><span class="eyebrow">78 municipios</span></div>
+    <div class="brand"><h1>Puerto Rico</h1>
+      <button id="map-photo" type="button" aria-pressed="false">Satélite</button>
+    </div>
+    <div id="photo-meta" hidden>
+      <a href="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer" target="_blank" rel="noopener">Imágenes: USDA / USGS</a>
+      <span id="photo-status" role="status"></span>
+      <button id="photo-retry" type="button" hidden>Reintentar</button>
+    </div>
     <label for="q" class="sr">Buscar pueblo, barrio, comunidad o sector</label>
     <input id="q" type="search" placeholder="Buscar pueblo, barrio o sector…" autocomplete="off" spellcheck="false" enterkeyhint="search">
     <ul id="list" role="listbox" aria-label="Municipios" hidden></ul>
@@ -313,7 +362,10 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       <div class="hbtns"><button id="fav" class="ib" type="button" aria-pressed="false" aria-label="Guardar en favoritos"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.8l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8z" fill="currentColor" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg></button><button id="share" class="ib" type="button" aria-label="Compartir enlace"><svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M7.5 7.5 12 3l4.5 4.5"/><path d="M5 12v6.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V12"/></svg></button><button id="more" type="button" aria-expanded="false">Detalles</button><button id="close" type="button" aria-label="Cerrar ficha">✕</button></div>
     </div>
     <p class="sum" id="i-sum"></p>
-    <button id="city-3d" type="button">Ver ciudad y edificios en 3D</button>
+    <div class="city-views">
+      <button id="city-3d" type="button">Ver ciudad y edificios en 3D</button>
+      <button id="city-photo" type="button">Casco en satélite</button>
+    </div>
     <p id="city-3d-status" role="status" aria-live="polite" hidden></p>
     <p class="wx" id="i-wx" hidden></p>
     <dl class="stats">
@@ -350,14 +402,23 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     <button id="t-more" class="tab" type="button" aria-expanded="false" aria-controls="sheet-more"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="19" cy="12" r="1.3" fill="currentColor"/></svg><span>Más</span></button>
   </nav>
   <div id="sheet-layers" class="panel sheet" hidden>
+    <div class="sh-t">Mapa base</div>
+    <div class="map-options" role="group" aria-label="Mapa base">
+      <button type="button" data-basemap="map" aria-pressed="true">Mapa</button>
+      <button type="button" data-basemap="satellite" aria-pressed="false">Satélite</button>
+      <button type="button" data-basemap="compare" aria-pressed="false">Comparar</button>
+    </div>
     <div class="sh-t">Capas</div>
     <button id="t-labels" class="row sw-row" type="button" aria-pressed="true">Nombres</button>
     <button id="t-borders" class="row sw-row" type="button" aria-pressed="true">Límites</button>
+    <div id="map-only-layers">
     <button id="t-regions" class="row sw-row" type="button" aria-pressed="false">Regiones</button>
     <button id="t-density" class="row sw-row" type="button" aria-pressed="false">Densidad de población</button>
     <button id="t-solid" class="row sw-row" type="button" aria-pressed="false">Verde sólido (sin relieve)</button>
     <button id="t-poi" class="row sw-row" type="button" aria-pressed="false">Lugares de interés</button>
     <div id="poi-cats" class="chips" hidden></div>
+    </div>
+    <div id="map-urban-layers">
     <label class="pm-label" for="pm-style">Estilo visual · PolyMap</label>
     <select id="pm-style" aria-label="Estilo visual del mapa">
       <option value="original">Original de PFKNR</option>
@@ -368,9 +429,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       <option value="greyscale">Escala de grises</option>
     </select>
     <button id="t-buildings" class="row sw-row" type="button" aria-pressed="false">Edificios 3D · PolyMap</button>
-    <button id="t-urban-details" class="row sw-row" type="button" aria-pressed="true">Calles, parques y árboles</button>
+    <button id="t-urban-details" class="row sw-row" type="button" aria-pressed="true">Calles</button>
+    <button id="t-vegetation" class="row sw-row" type="button" aria-pressed="true">Parques y vegetación</button>
     <button id="t-buildings-refresh" class="row" type="button" hidden>Actualizar edificios de esta zona</button>
     <small id="poly-status" role="status" aria-live="polite" hidden></small>
+    </div>
 
   </div>
   <div id="sheet-more" class="panel sheet" hidden>
@@ -421,7 +484,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/examples/js/controls/OrbitControls.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
 <script src="js/polymap-urban.js"></script>
-<script src="js/polymap-detail.js"></script>
+<script src="js/polymap-detail.js?v=1.7.0"></script>
+<script src="js/satellite.js?v=1.7.0"></script>
 <script>
 (async () => {
   'use strict';
@@ -839,8 +903,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
 
   // ---------- Exageración vertical ----------
+  let basemap = 'map';
   let EXS = 4, EX = 4, solid = false;   // EXS: valor del control; EX: el que se usa (casi 0 en modo sólido)
-  function setExag(v) { EXS = v; EX = solid ? 0.002 : v; exGroup.scale.y = EX; $('t-exag-v').textContent = '×' + v; }
+  function setExag(v) { EXS = v; EX = solid || basemap !== 'map' ? 0.002 : v; exGroup.scale.y = EX; $('t-exag-v').textContent = '×' + v; }
   setExag(4);
 
   // ---------- Altura máxima por municipio ----------
@@ -885,8 +950,17 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   // ---------- PolyMap: paletas MIT + edificios de OpenStreetMap 3D ----------
   const POLY = window.PolyUrban;
   const DETAIL = window.PolyDetail;
-  const URBAN = { on:false, group:null, detailGroup:null, detailsEnabled:true, request:0, abort:null, oldExag:4, buildings:[], lastCenter:null, nextAutoAt:0 };
-  const detailButton=$('t-urban-details');
+  const URBAN = { on:false, group:null, detailGroup:null, buildingsEnabled:true, roadsEnabled:true, vegetationEnabled:true, request:0, abort:null, oldExag:4, buildings:[], lastCenter:null, nextAutoAt:0 };
+  const detailButton = $('t-urban-details'), vegetationButton = $('t-vegetation');
+  const urbanVisible = () => (is3D || basemap === 'compare') && !solid;
+  function updateUrbanVisibility() {
+    if (URBAN.group) URBAN.group.visible = urbanVisible() && URBAN.buildingsEnabled;
+    if (URBAN.detailGroup) {
+      URBAN.detailGroup.visible = urbanVisible();
+      URBAN.detailGroup.getObjectByName('roads').visible = URBAN.roadsEnabled;
+      URBAN.detailGroup.getObjectByName('vegetation').visible = URBAN.vegetationEnabled;
+    }
+  }
   // Las islas municipio tienen una tapa topográfica a ISL_H.
   // Elevar solo estos detalles urbanos evita que calles/edificios queden ocultos.
   function urbanGroundAt(x,y) {
@@ -951,77 +1025,54 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     URBAN.group = null; URBAN.detailGroup=null; URBAN.buildings=[];
     URBAN.lastCenter=null;
   }
-  async function loadUrbanAt(lat,lon) {
-    if (!URBAN.on || !POLY || !is3D) return;
+  async function loadUrbanAt(lat, lon, { focus = false } = {}) {
+    if (!URBAN.on || !POLY || (!is3D && basemap !== 'compare')) return;
     clearUrban();
-    const xy=proj(lon,lat);
-    URBAN.lastCenter=xy;
-    URBAN.nextAutoAt=performance.now()+12000;
+    URBAN.lastCenter = proj(lon, lat);
+    URBAN.nextAutoAt = performance.now() + 12000;
     const ticket = URBAN.request, ctrl = new AbortController();
     URBAN.abort = ctrl;
     cityMessage('Descargando edificios, calles y zonas verdes…');
-    // Las vías y las zonas verdes se solicitan por coordenadas,
-    // por lo que funciona en todos los 78 municipios, incluyendo las islas.
-    const detailsRequest = DETAIL ? DETAIL.load(lat,lon,ctrl.signal) : Promise.resolve(null);
-    try {
-      const ways = await POLY.loadBuildings(lat,lon,{signal:ctrl.signal});
-      if (ticket!==URBAN.request || !URBAN.on) return;
-      const result = POLY.makeGroup({ways,THREE,project:proj,groundAt:urbanGroundAt,
-        center:{lat,lon},maxBuildings:small?220:450,color:POLY.THEMES[polyStyle].building});
-      if (ticket!==URBAN.request || !URBAN.on) { POLY.disposeGroup(result.group); return; }
+    const [buildings, detail] = await Promise.allSettled([
+      POLY.loadBuildings(lat, lon, { signal: ctrl.signal }),
+      DETAIL ? DETAIL.load(lat, lon, ctrl.signal) : Promise.resolve(null)
+    ]);
+    if (ticket !== URBAN.request || !URBAN.on) return;
+    URBAN.abort = null;
+    const messages = [];
+    if (buildings.status === 'fulfilled') {
+      const ways = buildings.value;
+      const result = POLY.makeGroup({ ways, THREE, project: proj, groundAt: urbanGroundAt,
+        center: { lat, lon }, maxBuildings: small ? 220 : 450, color: POLY.THEMES[polyStyle].building });
       URBAN.group = result.group;
       URBAN.buildings = ways;
-      URBAN.group.visible = is3D && !solid;
       exGroup.add(URBAN.group);
-      detailsRequest.then(features => {
-        if (ticket!==URBAN.request || !URBAN.on || !features || !DETAIL) return;
-        if(URBAN.detailGroup)DETAIL.dispose(URBAN.detailGroup);
-        if (!URBAN.detailsEnabled) return;
-        const context=DETAIL.make({
-          THREE,features,groundAt:urbanGroundAt,project:proj,center:{lat,lon},
-          buildings:URBAN.buildings,small,style:polyStyle
-        });
-        URBAN.detailGroup=context.group;
-        URBAN.detailGroup.visible=is3D&&!solid;
-        exGroup.add(URBAN.detailGroup);
-        cityMessage(result.count + ' edificios 3D · '+context.roads+
-          ' vías reales · '+context.parks+' zonas verdes · '+context.trees+
-          ' árboles ilustrativos.');
-      }).catch(e=>{
-        if(ticket===URBAN.request && URBAN.on && !ctrl.signal.aborted)
-          cityMessage(result.count+' edificios 3D · Calles/vegetación no disponibles: '+String(e.message||e).slice(0,80));
-      });
-      urbanSurface(true);
-      if (result.focus && result.count) {
-        // Reencuadre en la concentración real de estructuras.
-        // Evita las vistas vacías que se observaron en Cayey en iPad.
-        const f=result.focus;
-        const target=new THREE.Vector3(f.x,urbanGroundAt(f.x,f.y)+.007,-f.y);
-        const direction=new THREE.Vector3(.14,.86,.52).normalize();
-        const distance=small?.48:.62;
-        flyTo(target,target.clone().add(direction.multiplyScalar(distance)),850);
+      messages.push(result.count + ' edificios 3D');
+      if (focus && is3D && result.focus && result.count) {
+        const f = result.focus;
+        const target = new THREE.Vector3(f.x, urbanGroundAt(f.x, f.y) + .007, -f.y);
+        const direction = new THREE.Vector3(.14, .86, .52).normalize();
+        flyTo(target, target.clone().add(direction.multiplyScalar(small ? .48 : .62)), 850);
       }
-      cityMessage(result.count
-        ? result.count + ' edificios 3D cargados ('+(ways.source || 'OSM')+').'
-        : 'No hay huellas de edificios disponibles en esta zona.');
-    } catch(err) {
-      if (ticket!==URBAN.request || ctrl.signal.aborted && !URBAN.on) return;
-      const message = String(err && err.message || err || 'Servicio no disponible').slice(0,125);
-      cityMessage('Edificios sin cargar: ' + message + '. Prueba otra zona o Actualizar.');
-      note('La descarga de edificios falló; el mapa de Puerto Rico sigue operativo.',4500);
-    } finally { if (ticket===URBAN.request) URBAN.abort=null; }
+    } else messages.push('Edificios no disponibles');
+    if (detail.status === 'fulfilled' && detail.value) {
+      const context = DETAIL.make({
+        THREE, features: detail.value, groundAt: urbanGroundAt, project: proj,
+        center: { lat, lon }, buildings: URBAN.buildings, small, style: polyStyle
+      });
+      URBAN.detailGroup = context.group;
+      exGroup.add(URBAN.detailGroup);
+      messages.push(context.roads + ' vías reales', context.parks + ' zonas verdes',
+        context.trees + ' árboles ilustrativos');
+    } else if (DETAIL) messages.push('Calles y vegetación no disponibles');
+    updateUrbanVisibility();
+    urbanSurface(true);
+    cityMessage(messages.join(' · '));
   }
 
   // Utilizamos barrio-pueblo, no el centro geográfico del municipio:
   // p.ej. Cayey Pueblo [-66.1713, 18.11196] en la base PFKNR.
-  async function showUrbanForSelected() {
-    if (!URBAN.on || selected<0 || !POLY) return;
-    const i=selected;
-    cityMessage('Buscando el centro urbano de ' + DATA[i].name + '…');
-    try { await BAR.ready; } catch(e) { /* si falla la ficha, usar centro municipal */ }
-    if (selected!==i || !URBAN.on) return;
-    // Eliminar todos los tintes de selección al entrar al nivel de ciudad.
-    urbanSurface(true);
+  function urbanCenter(i) {
     const pueblo=BAR.list.find(b=>b.pueblo && Array.isArray(b.label));
     // Algunos centros (p. ej. Ponce) se componen de varios barrios
     // Primero/Segundo/Tercero y no tienen marca de barrio-pueblo.
@@ -1035,16 +1086,26 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       : null;
     const urbanDense=urbano.sort((a,b)=>
       (b.pob||0)/Math.max(.1,b.areaKm2||1)-(a.pob||0)/Math.max(.1,a.areaKm2||1))[0];
-    const [lon,lat]=pueblo?.label || numberedCenter || urbanDense?.label || DATA[i].label;
+    return pueblo?.label || numberedCenter || urbanDense?.label || DATA[i].label;
+  }
+  async function showUrbanForSelected() {
+    if (!URBAN.on || selected<0 || !POLY) return;
+    const i=selected;
+    cityMessage('Buscando el centro urbano de ' + DATA[i].name + '…');
+    try { await BAR.ready; } catch(e) { /* si falla la ficha, usar centro municipal */ }
+    if (selected!==i || !URBAN.on) return;
+    // Eliminar todos los tintes de selección al entrar al nivel de ciudad.
+    urbanSurface(true);
+    const [lon,lat]=urbanCenter(i);
     const [x,y]=proj(lon,lat);
     // Cámara cercana sobre un núcleo urbano: la vista de todo el municipio
     // es demasiado distante para apreciar edificios de 7-15 metros.
-    const target=new THREE.Vector3(x,urbanGroundAt(x,y)+.007,-y);
+    const target=new THREE.Vector3(x,basemap === 'compare' ? 0 : urbanGroundAt(x,y)+.007,-y);
     const direction=viewDir().clone();
     direction.y=Math.max(.68,direction.y);
     direction.normalize();
     flyTo(target,target.clone().add(direction.multiplyScalar(.46)),1000);
-    loadUrbanAt(lat,lon);
+    loadUrbanAt(lat, lon, { focus: true });
   }
 
   function setUrbanMode(on) {
@@ -1054,11 +1115,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     }
     if (on===URBAN.on) { if (on) showUrbanForSelected(); return; }
     URBAN.on=on;
-    urbanButton.setAttribute('aria-pressed',String(on));
+    urbanButton.setAttribute('aria-pressed', String(on && URBAN.buildingsEnabled));
     urbanRefresh.hidden=!on;
     if (on) {
       URBAN.oldExag=EXS;
-      if (!is3D) $('t-3d').click();
+      if (!is3D && basemap === 'map') $('t-3d').click();
       if (solid) $('t-solid').click();
       camera.near=.015; camera.far=1800; camera.updateProjectionMatrix();
       controls.minDistance=.15;
@@ -1067,21 +1128,33 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     } else {
       clearUrban(); urbanStatus.hidden=true; cityStatus.hidden=true;
       urbanSurface(false);
-      camera.near=2; camera.far=6000; camera.updateProjectionMatrix();
-      controls.minDistance=8;
+      camera.near = basemap === 'map' ? 2 : .015;
+      camera.far = 6000; camera.updateProjectionMatrix();
+      controls.minDistance = basemap === 'map' ? 8 : .15;
       setExag(URBAN.oldExag); $('t-exag').value=String(URBAN.oldExag);
-      if (camera.position.distanceTo(controls.target)<9)
+      if (basemap === 'map' && camera.position.distanceTo(controls.target)<9)
         flyTo(controls.target.clone(),controls.target.clone().add(viewDir().multiplyScalar(13)),700);
     }
   }
-  urbanButton.addEventListener('click',()=> { if (POLY) setUrbanMode(!URBAN.on); });
-  detailButton.disabled=!DETAIL;
-  detailButton.addEventListener('click',()=>{
-    URBAN.detailsEnabled=!URBAN.detailsEnabled;
-    detailButton.setAttribute('aria-pressed',String(URBAN.detailsEnabled));
-    if(URBAN.detailGroup) URBAN.detailGroup.visible=URBAN.detailsEnabled&&is3D&&!solid;
-    else if(URBAN.detailsEnabled&&URBAN.on) showUrbanForSelected();
+  urbanButton.addEventListener('click', () => {
+    if (!URBAN.on) {
+      URBAN.buildingsEnabled = true;
+      setUrbanMode(true);
+    } else {
+      URBAN.buildingsEnabled = !URBAN.buildingsEnabled;
+      urbanButton.setAttribute('aria-pressed', String(URBAN.buildingsEnabled));
+      updateUrbanVisibility();
+    }
   });
+  for (const [button, key] of [[detailButton, 'roadsEnabled'], [vegetationButton, 'vegetationEnabled']]) {
+    button.disabled = !DETAIL || !POLY;
+    button.addEventListener('click', () => {
+      URBAN[key] = !URBAN[key];
+      button.setAttribute('aria-pressed', String(URBAN[key]));
+      if (URBAN[key] && selected >= 0 && !URBAN.on) setUrbanMode(true);
+      else updateUrbanVisibility();
+    });
+  }
   urbanRefresh.addEventListener('click',()=> {
     if (!URBAN.on) return;
     const [lon,lat]=unproj(controls.target.x,-controls.target.z);
@@ -1089,7 +1162,13 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   });
   $('city-3d').disabled=!POLY;
   $('city-3d').addEventListener('click',()=> {
-    if (POLY && selected>=0) { setUrbanMode(true); closeSheets(); }
+    if (!POLY || selected < 0) return;
+    URBAN.buildingsEnabled = true;
+    if (!is3D) $('t-3d').click();
+    else setUrbanMode(true);
+    urbanButton.setAttribute('aria-pressed', 'true');
+    updateUrbanVisibility();
+    closeSheets();
   });
 
   // ---------- Etiquetas ----------
@@ -1107,7 +1186,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     let ok = on;
     if (ok) {
       if (!o.w) o.w = o.el.offsetWidth || 60;
-      v3.set(o.lx, y3, -o.ly).project(camera);
+      v3.set(o.lx, basemap === 'map' ? y3 : 0, -o.ly).project(camera);
       ok = v3.z < 1 && Math.abs(v3.x) < 1.05 && Math.abs(v3.y) < 1.05;
       const x = (v3.x + 1) / 2 * w, y = (1 - v3.y) / 2 * h;
       const r = { x0: x - o.w / 2 - 3, x1: x + o.w / 2 + 3, y0: y - 8, y1: y + 8 };
@@ -1158,7 +1237,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (VO.cx == null || instant || reduceMotion) { VO.cx = tx; VO.cy = ty; }
     else { VO.cx += (tx - VO.cx) * 0.14; VO.cy += (ty - VO.cy) * 0.14; }
     const w = size.w, h = size.h, key = `${w}|${h}|${VO.cx.toFixed(1)}|${VO.cy.toFixed(1)}`;
-    if (key === VO.key) return; VO.key = key;
+    if (key === VO.key) return;
+    VO.key = key;
+    $('map-compare').style.setProperty('--split-y', `${VO.cy.toFixed(1)}px`);
     const ox = w / 2 - VO.cx, oy = h / 2 - VO.cy, W2 = w + 2 * Math.abs(ox), H2 = h + 2 * Math.abs(oy);
     camera.aspect = W2 / H2;
     camera.fov = THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(FOV0 / 2)) * H2 / h));
@@ -1198,7 +1279,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   }
   function flyToBox(b, minD = 10) {
     const cx = (b.x0 + b.x1) / 2, cy = (b.y0 + b.y1) / 2;
-    const target = new THREE.Vector3(cx, (landAt(...unproj(cx, cy)) ? hAt(cx, cy) * EX : 0) * 0.5, -cy);
+    const height = basemap === 'map' && landAt(...unproj(cx, cy)) ? hAt(cx, cy) * EX * .5 : 0;
+    const target = new THREE.Vector3(cx, height, -cy);
     const d = THREE.MathUtils.clamp(fitDistance((b.x1 - b.x0) / 2, (b.y1 - b.y0) / 2), minD, 700);
     flyTo(target, target.clone().add(viewDir().multiplyScalar(d)), 1100);
   }
@@ -1233,6 +1315,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     }
     return c;
   }
+  const photoHitboxes = DATA.map(m => m.polys.map(poly => {
+    const box = new THREE.Box2();
+    for (const [lon, lat] of poly[0]) box.expandByPoint(new THREE.Vector2(lon, lat));
+    return { poly, box };
+  }));
   const barrioAt = (lon, lat) => BAR.list.findIndex(b => b.polys.some(p => insidePoly([lon, lat], p)));
   function dropLines(arr) { arr.forEach(l => { l.parent.remove(l); l.geometry.dispose(); if (l.isMesh) l.material.dispose(); }); arr.length = 0; }
   let barSelLines = [];
@@ -1513,11 +1600,22 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     return idOf(idPx[((v * IH | 0) * IW + (u * IW | 0)) * 4]);
   }
   const below = t => { P.copy(ray.ray.direction).multiplyScalar(t).add(ray.ray.origin); return P.y <= hAt(P.x, -P.z) * EX; };
+  const hitPoint = new THREE.Vector2();
+  function pickPhoto(o, d, r) {
+    if (d.y >= 0) return { idx: -1, t: Infinity, x: 0, y: 0, r };
+    const t = -o.y / d.y;
+    const x = o.x + d.x * t, y = -(o.z + d.z * t);
+    const ll = unproj(x, y);
+    hitPoint.set(...ll);
+    const idx = photoHitboxes.findIndex(polys => polys.some(({ poly, box }) => box.containsPoint(hitPoint) && insidePoly(ll, poly)));
+    return { idx, t, x, y, r };
+  }
   function pick(e) {
     const r = canvas.getBoundingClientRect();
     ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
     const o = ray.ray.origin, d = ray.ray.direction;
+    if (basemap !== 'map') return pickPhoto(o, d, r);
     let best = { idx: -1, t: Infinity, x: 0, y: 0 };
     const isl = ray.intersectObjects(islandMeshes, false)[0];
     if (isl) best = { idx: isl.object.userData.idx, t: isl.distance, x: isl.point.x, y: -isl.point.z };
@@ -1856,7 +1954,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
         const dh = (h1 - prevH) * 1000; if (dh > 0) up += dh; else downM -= dh; prevH = h1;
       }
     });
-    if (pts.length) { MS.line = mkLines(pts, measureMat, 7); exGroup.add(MS.line); }
+    if (pts.length) {
+      MS.line = mkLines(pts, measureMat, 7);
+      MS.line.layers.enable(PRSatellite.layer);
+      exGroup.add(MS.line);
+    }
     $('m-dist').textContent = MS.pts.length < 2 ? (MS.pts.length ? 'Toca otro punto' : 'Toca el mapa para marcar puntos') : `${fmt.format(dist)} km` + (dist < 1 ? ` (${fmt0.format(Math.round(dist * 1000))} m)` : '');
     $('m-elev').textContent = MS.pts.length >= 2 ? `↑ ${fmt0.format(Math.round(up))} m · ↓ ${fmt0.format(Math.round(downM))} m` : '';
     renderProfile($('m-prof'), MS.pts.length >= 2 ? sampleAlong(MS.pts) : null);
@@ -1925,7 +2027,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
       // ancho según la longitud de la ruta, para que se vea bien a cualquier escala
       let len = 0; for (let k = 1; k < path.length; k++) len += Math.hypot(path[k].x - path[k - 1].x, path[k].y - path[k - 1].y);
       const w = THREE.MathUtils.clamp(len * 0.012, 0.05, 0.6);
-      RT.line = [ribbon(path, w * 1.6, routeEdgeMat, 8), ribbon(path, w, routeMat, 9)]; RT.line.forEach(l => exGroup.add(l)); routeMarkers();
+      RT.line = [ribbon(path, w * 1.6, routeEdgeMat, 8), ribbon(path, w, routeMat, 9)]; RT.line.forEach(line => {
+        line.layers.enable(PRSatellite.layer);
+        exGroup.add(line);
+      });
+      routeMarkers();
       const samples = sampleAlong(coords.filter((c, k) => k % 2 === 0 || k === coords.length - 1));
       let up = 0, dn = 0; for (let k = 1; k < samples.length; k++) { const dh = samples[k].h - samples[k - 1].h; if (dh > 0) up += dh; else dn -= dh; }
       $('r-info').textContent = `${fmt.format(rt.distance / 1000)} km · ${fmtDur(rt.duration)}`;
@@ -2190,11 +2296,11 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   toggle('t-borders', on => { borderMain.visible = borderIsl.visible = on; });
   toggle('t-spin', on => { controls.autoRotate = on; });
   toggle('t-3d', on => {
+    if (on && basemap !== 'map') setBasemap('map');
     is3D = on; applyControlMode(); setHint();
     if (on && selected>=0 && !URBAN.on && POLY) setUrbanMode(true);
     else if (!on && URBAN.on) setUrbanMode(false);
-    if (URBAN.group) URBAN.group.visible = on && !solid;
-    if (URBAN.detailGroup) URBAN.detailGroup.visible = on && !solid && URBAN.detailsEnabled;
+    updateUrbanVisibility();
     $('t-spin').hidden = !on; if (!on) $('t-spin').setAttribute('aria-pressed', false);
     $('t-exag-wrap').hidden = !on || solid;
     const d = camera.position.distanceTo(controls.target);
@@ -2203,8 +2309,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const lineMats = [bordersMat, selLineMat, barLineMat, barLineSelMat, comLineMat];
   toggle('t-solid', on => {
     solid = on; uni.solidOn.value = on ? 1 : 0; waterU.uSolid.value = on ? 1 : 0;
-    if (URBAN.group) URBAN.group.visible = !on && is3D;
-    if (URBAN.detailGroup) URBAN.detailGroup.visible = !on && is3D && URBAN.detailsEnabled;
+    updateUrbanVisibility();
     setExag(EXS);
     // en plano las líneas se dibujan siempre encima (no hay montañas que las tapen)
     lineMats.forEach(m => { m.depthTest = !on; m.needsUpdate = true; });
@@ -2257,6 +2362,105 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   $('t-reset').addEventListener('click', () => { select(-1, { fly: false }); const v = homeView(); flyTo(v.target, v.pos); });
   $('t-exag').addEventListener('input', e => setExag(+e.target.value));
 
+  // ---------- Mapa base y comparación sincronizada ----------
+  const compare = $('map-compare'), split = $('map-split'), photoButton = $('map-photo');
+  const modes = [...document.querySelectorAll('[data-basemap]')];
+  const imagery = PRSatellite.create({
+    THREE, scene, project: proj, unproject: unproj, municipalities: DATA,
+    onStatus(status) {
+      $('photo-status').textContent = ({
+        loading: 'Cargando imágenes…',
+        detail: 'Cargando detalle…',
+        error: 'Imágenes no disponibles'
+      })[status] || '';
+      $('photo-retry').hidden = status !== 'error';
+    }
+  });
+  function setBasemap(mode) {
+    if (basemap === mode) return;
+    const wasPhoto = basemap !== 'map';
+    const photo = mode !== 'map';
+    const center = controls.target.clone();
+    const distance = camera.position.distanceTo(center);
+    if (photo && is3D) {
+      is3D = false;
+      $('t-3d').setAttribute('aria-pressed', 'false');
+      $('t-spin').setAttribute('aria-pressed', 'false');
+      $('t-spin').hidden = $('t-exag-wrap').hidden = true;
+      applyControlMode();
+    }
+    basemap = mode;
+    if (mode !== 'compare' && URBAN.on) setUrbanMode(false);
+    updateUrbanVisibility();
+    setExag(EXS);
+    if (photo !== wasPhoto) {
+      imagery.setActive(photo);
+      camera.near = photo ? .015 : 2;
+      camera.updateProjectionMatrix();
+      controls.minDistance = photo ? .15 : 8;
+      center.y = 0;
+      flyTo(center, center.clone().add(viewDir().multiplyScalar(Math.max(distance, controls.minDistance))), 0);
+    }
+    app.dataset.basemap = mode;
+    for (const b of modes) b.setAttribute('aria-pressed', String(b.dataset.basemap === mode));
+    photoButton.textContent = photo ? 'Volver al mapa' : 'Satélite';
+    photoButton.setAttribute('aria-pressed', String(photo));
+    $('photo-meta').hidden = !photo;
+    $('map-only-layers').hidden = mode === 'satellite';
+    $('map-urban-layers').hidden = mode === 'satellite';
+    legend.hidden = !LAYER || mode === 'satellite';
+    compare.hidden = mode !== 'compare';
+    setHint();
+  }
+  function updateSplit() {
+    compare.style.setProperty('--split', split.value + '%');
+    split.setAttribute('aria-valuetext', `Mapa ${split.value} %, satélite ${100 - Number(split.value)} %`);
+  }
+  split.addEventListener('input', updateSplit);
+  updateSplit();
+  modes.forEach(b => b.addEventListener('click', () => { setBasemap(b.dataset.basemap); closeSheets(); }));
+  photoButton.addEventListener('click', () => {
+    setBasemap(basemap === 'map' ? 'satellite' : 'map');
+    closeSheets();
+  });
+  $('photo-retry').addEventListener('click', imagery.retry);
+  window.addEventListener('online', imagery.retry);
+  $('city-photo').addEventListener('click', async () => {
+    const i = selected;
+    if (i < 0) return;
+    setBasemap('satellite');
+    closeSheets();
+    try { await BAR.ready; } catch (e) { /* Usar la etiqueta municipal si no hay barrios. */ }
+    if (selected !== i || basemap !== 'satellite') return;
+    const [x, y] = proj(...urbanCenter(i));
+    flyToBox({ x0: x - .38, x1: x + .38, y0: y - .28, y1: y + .28 }, .6);
+  });
+
+  function renderMap() {
+    if (basemap === 'map') {
+      renderer.render(scene, camera);
+      return;
+    }
+    const cut = basemap === 'compare' ? Math.round(size.w * Number(split.value) / 100) : 0;
+    if (cut > 0) renderer.render(scene, camera);
+    if (cut >= size.w) return;
+    camera.updateMatrixWorld();
+    imagery.update(camera, size, cut / size.w * 2 - 1);
+    imagery.setOutlines($('t-borders').getAttribute('aria-pressed') === 'true', selected);
+    const clear = renderer.getClearColor(photoClear);
+    renderer.setClearColor(imagery.navy);
+    if (cut > 0) {
+      renderer.setScissor(cut, 0, size.w - cut, size.h);
+      renderer.setScissorTest(true);
+    }
+    camera.layers.set(PRSatellite.layer);
+    renderer.render(scene, camera);
+    camera.layers.set(0);
+    renderer.setScissorTest(false);
+    renderer.setClearColor(clear);
+  }
+  const photoClear = new THREE.Color();
+
   // ---------- Bucle ----------
   function resize() {
     const w = app.clientWidth, h = app.clientHeight; if (!w || !h) return;
@@ -2304,7 +2508,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     if (cx !== tg.x || cz !== tg.z) { camera.position.x += cx - tg.x; camera.position.z += cz - tg.z; tg.x = cx; tg.z = cz; }
     if (islandsDirty) { islandsDirty = false; paintIslandOverlays(); }
     sky.position.copy(camera.position);
-    renderer.render(scene, camera);
+    renderMap();
     placeLabels(size.w, size.h);
     requestAnimationFrame(frame);
   }
