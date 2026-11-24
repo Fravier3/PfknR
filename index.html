@@ -381,7 +381,7 @@ button { touch-action: manipulation; }
     </div>
     <p class="sum" id="i-sum"></p>
     <div class="city-views">
-      <button id="city-photo" type="button">Casco en satélite</button>
+      <button id="city-photo" type="button" aria-pressed="false">Casco en satélite</button>
     </div>
     <p id="city-3d-status" role="status" aria-live="polite" hidden></p>
     <p class="wx" id="i-wx" hidden></p>
@@ -501,7 +501,7 @@ button { touch-action: manipulation; }
 <script src="libs/motion.js"></script>
 <script src="js/polymap-urban.js"></script>
 <script src="js/polymap-detail.js?v=1.7.0"></script>
-<script src="js/satellite.js?v=1.7.2"></script>
+<script src="js/satellite.js?v=1.7.3"></script>
 <script>
 (async () => {
   'use strict';
@@ -920,6 +920,7 @@ button { touch-action: manipulation; }
 
   // ---------- Exageración vertical ----------
   let basemap = 'map';
+  let cascoVisit = null;
   let EXS = 4, EX = 4, solid = false;   // EXS: valor del control; EX: el que se usa (casi 0 en modo sólido)
   function setExag(v) { EXS = v; EX = solid || basemap !== 'map' ? 0.002 : v; exGroup.scale.y = EX; $('t-exag-v').textContent = '×' + v; }
   setExag(4);
@@ -1521,6 +1522,7 @@ button { touch-action: manipulation; }
   const fmtLL = ([lon, lat]) => `${lat.toFixed(3)}°N ${Math.abs(lon).toFixed(3)}°O`;
   function select(i, { fly = true } = {}) {
     if (!GPS.internal && GPS.watch != null) { GPS.userActed = true; if (GPS.auto) setAuto(false); }
+    if (i !== selected || fly) setCascoVisit(null);
     if (i === selected && i !== -1) { if (fly) { if (URBAN.on) showUrbanForSelected(); else flyToMuni(i); } return; }
     selected = i; uni.selId.value = i; paintIslands(); setSelLines(i);
     app.classList.toggle('has-sel', i >= 0);
@@ -2350,8 +2352,15 @@ button { touch-action: manipulation; }
   function photoMinDistance() {
     return size.h * .0005 / (2 * Math.tan(THREE.MathUtils.degToRad(FOV0 / 2)));
   }
+  function setCascoVisit(visit) {
+    cascoVisit = visit;
+    const button = $('city-photo');
+    button.setAttribute('aria-pressed', String(Boolean(visit)));
+    button.textContent = visit ? 'Volver al mapa original' : 'Casco en satélite';
+  }
   function setBasemap(mode) {
     if (basemap === mode) return;
+    setCascoVisit(null);
     const wasPhoto = basemap !== 'map';
     const photo = mode !== 'map';
     const center = controls.target.clone();
@@ -2402,10 +2411,17 @@ button { touch-action: manipulation; }
   $('city-photo').addEventListener('click', async () => {
     const i = selected;
     if (i < 0) return;
-    setBasemap('satellite');
     closeSheets();
+    if (cascoVisit && cascoVisit.municipality === i) {
+      setBasemap('map');
+      flyToMuni(i);
+      return;
+    }
+    setBasemap('satellite');
+    const visit = { municipality: i };
+    setCascoVisit(visit);
     try { await BAR.ready; } catch (e) { /* Usar la etiqueta municipal si no hay barrios. */ }
-    if (selected !== i || basemap !== 'satellite') return;
+    if (cascoVisit !== visit) return;
     const [x, y] = proj(...urbanCenter(i));
     flyToBox({ x0: x - .38, x1: x + .38, y0: y - .28, y1: y + .28 }, .6);
   });
@@ -2420,7 +2436,7 @@ button { touch-action: manipulation; }
     if (cut >= size.w) return;
     camera.updateMatrixWorld();
     imagery.update(camera, size, cut / size.w * 2 - 1);
-    imagery.setOutlines($('t-borders').getAttribute('aria-pressed') === 'true', selected);
+    imagery.setOutlines($('t-borders').getAttribute('aria-pressed') === 'true', selected, selected >= 0 && BAR.fips === DATA[selected].id ? BAR.list : null);
     const clear = renderer.getClearColor(photoClear);
     renderer.setClearColor(imagery.navy);
     if (cut > 0) {
@@ -2506,7 +2522,7 @@ button { touch-action: manipulation; }
 })();
 </script>
 
-<script>window.APP_VERSION = '1.7.2';</script>
+<script>window.APP_VERSION = '1.7.3';</script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>

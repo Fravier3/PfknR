@@ -46,6 +46,10 @@
       color: '#ffcf67', transparent: true, depthTest: false, depthWrite: false
     });
     const outlines = makeOutline(municipalities.flatMap(m => m.polys), municipalLines, 3);
+    const barrioMaterial = new THREE.LineBasicMaterial({
+      color: '#000000', transparent: true, depthTest: false, depthWrite: false
+    });
+    let barrioSource = null, barrioOutline = null;
     let selectedOutline = null;
     let requestedSelection = -1;
     let visibleTiles = new Set();
@@ -76,7 +80,17 @@
       return line;
     }
 
-    function setOutlines(visible, selected) {
+    function setOutlines(visible, selected, barrios = null) {
+      if (barrios !== barrioSource) {
+        barrioSource = barrios;
+        if (barrioOutline) {
+          photo.remove(barrioOutline);
+          barrioOutline.geometry.dispose();
+        }
+        barrioOutline = barrios?.length ? makeOutline(barrios.flatMap(b => b.polys), barrioMaterial, 2) : null;
+        if (barrioOutline) photo.add(barrioOutline);
+      }
+      if (barrioOutline) barrioOutline.visible = visible;
       outlines.visible = visible;
       if (requestedSelection !== selected) {
         requestedSelection = selected;
