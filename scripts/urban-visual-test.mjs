@@ -39,6 +39,58 @@ function assess(buffer){
   const top=[...counts].sort((a,b)=>b[1]-a[1]).slice(0,5);
   return {colors16:bucket.size,roofPixels,topColors32:top};
 }
+// Comprueba que el fondo satelital tiene imagen real y que el divisor aísla ambos mapas.
+async function checkSatellite() {
+  const photoButton = page.locator('#map-photo');
+  const layers = page.locator('#t-layers');
+  const divider = page.locator('#map-split');
+  const shot = () => page.screenshot({ animations: 'disabled' });
+  const openCompare = async () => {
+    await layers.click();
+    await page.locator('[data-basemap="compare"]').click();
+  };
+  await photoButton.click();
+  await page.waitForFunction(() => document.querySelector('#photo-status').textContent === '', null, {timeout:30000});
+  const island = await shot();
+  if (assess(island).colors16 < 40) throw Error('La vista de la isla no muestra fotografía');
+  writeFileSync(out + '/satelite-isla.png', island);
+  for (const town of ['Cayey', 'Culebra']) {
+    await page.evaluate(name => PRMap.select(name), town);
+    const detail = page.waitForResponse(r => r.ok() && r.url().includes('/USGSNAIPPlus/ImageServer/exportImage'), {timeout:30000});
+    await page.locator('#city-photo').click();
+    await detail;
+    await page.waitForFunction(() => document.querySelector('#photo-status').textContent === '', null, {timeout:35000});
+    const photo = await shot();
+    if (assess(photo).colors16 < 40) throw Error('Falta el detalle de fotografía en ' + town);
+    writeFileSync(out + '/satelite-' + town.toLowerCase() + '.png', photo);
+  }
+  await openCompare();
+  await divider.press('Home');
+  if (!/Mapa 0 %, satélite 100 %/.test(await divider.getAttribute('aria-valuetext'))) throw Error('El divisor no muestra todo el satélite');
+  const aerial = PNG.sync.read(await shot());
+  await divider.press('End');
+  const map = PNG.sync.read(await shot());
+  let changed = 0, count = 0;
+  for (let y = 260; y < aerial.height * .72; y += 11) {
+    for (let x = 40; x < aerial.width * .60; x += 11) {
+      const p = (y * aerial.width + x) * 4;
+      const delta = [0, 1, 2].reduce((d, c) => d + Math.abs(aerial.data[p + c] - map.data[p + c]), 0);
+      if (delta > 45) changed++;
+      count++;
+    }
+  }
+  if (changed / count < .35) throw Error('Mover el divisor no cambia el mapa base visible');
+  await divider.press('Home');
+  await divider.press('PageUp');
+  await divider.press('PageUp');
+  await divider.press('PageUp');
+  await divider.press('PageUp');
+  await divider.press('PageUp');
+  writeFileSync(out + '/satelite-comparacion.png', await shot());
+  await photoButton.click();
+  if (await divider.isVisible()) throw Error('El divisor sigue visible al volver al mapa');
+  console.log('SATELLITE PASS ' + JSON.stringify({ towns: ['Cayey', 'Culebra'], changed: changed / count }));
+}
 const results=[];
 try {
   await page.goto('http://127.0.0.1:8765/',{waitUntil:'domcontentloaded',timeout:60000});
@@ -48,6 +100,7 @@ try {
     return {width:c.width,height:c.height,webgl:!!(c.getContext('webgl2')||c.getContext('webgl'))};
   });
   console.log('RENDERER '+JSON.stringify(gl));
+  await checkSatellite();
   for (const town of ['Cayey','Loíza','Ponce','Vieques','Culebra']) {
     const selection=await page.evaluate(town=>window.PRMap.select(town),town);
     if(selection<0) throw Error('No se encontró pueblo '+town);
