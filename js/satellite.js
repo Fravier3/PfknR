@@ -41,7 +41,7 @@
   }
 
   function municipalMaterial(THREE) {
-    return strokeMaterial(THREE, '#ffffff', 2.5);
+    return new THREE.LineBasicMaterial({ color: '#ffffff', transparent: true, opacity: .72, depthTest: false, depthWrite: false });
   }
 
   function strokeMesh(THREE, vertices, material, order, layer) {
@@ -266,7 +266,6 @@
     }
 
     function update(camera, size, from = -1) {
-      municipalLines.uniforms.viewportSize.value.set(size.w, size.h);
       barrioMaterial.uniforms.viewportSize.value.set(size.w, size.h);
       const now = performance.now();
       if (!active || now < nextUpdate) return;
@@ -329,6 +328,6 @@
     return { setActive, setOutlines, update, retry, navy };
   }
 
-  root.PRBoundaries = Object.freeze({ municipalMaterial, strokeMesh });
+  root.PRBoundaries = Object.freeze({ municipalMaterial });
   root.PRSatellite = Object.freeze({ create, layer: LAYER });
 })(window);

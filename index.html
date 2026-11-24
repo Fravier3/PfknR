@@ -501,7 +501,7 @@ button { touch-action: manipulation; }
 <script src="libs/motion.js"></script>
 <script src="js/polymap-urban.js"></script>
 <script src="js/polymap-detail.js?v=1.7.0"></script>
-<script src="js/satellite.js?v=1.7.7"></script>
+<script src="js/satellite.js?v=1.7.8"></script>
 <script>
 (async () => {
   'use strict';
@@ -907,7 +907,7 @@ button { touch-action: manipulation; }
   const mkLines = (arr, mat, ro) => { const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(arr, 3)); const l = new THREE.LineSegments(g, mat); l.renderOrder = ro; return l; };
   function buildLines(polys, lift) { const main = [], isl = []; polys.forEach(p => { const d = draped(p, lift); (d.isl ? isl : main).push(...d.pts); }); return { main, isl }; }
   const allB = buildLines(DATA.flatMap(m => m.polys), 0.004);
-  const borderMain = PRBoundaries.strokeMesh(THREE, allB.main, bordersMat, 2, 0), borderIsl = PRBoundaries.strokeMesh(THREE, allB.isl, bordersMat, 2, 0);
+  const borderMain = mkLines(allB.main, bordersMat, 2), borderIsl = mkLines(allB.isl, bordersMat, 2);
   exGroup.add(borderMain); scene.add(borderIsl);   // las islas no se escalan con el relieve
   let selLines = [];
   function setSelLines(i) {
@@ -2434,7 +2434,6 @@ button { touch-action: manipulation; }
   // ---------- Bucle ----------
   function resize() {
     const w = app.clientWidth, h = app.clientHeight; if (!w || !h) return;
-    bordersMat.uniforms.viewportSize.value.set(w, h);
     size = { w, h }; if (basemap !== 'map') controls.minDistance = photoMinDistance(); renderer.setSize(w, h, false); updateViewOffset(true);
   }
   new ResizeObserver(resize).observe(app); resize();
@@ -2504,7 +2503,7 @@ button { touch-action: manipulation; }
 })();
 </script>
 
-<script>window.APP_VERSION = '1.7.7';</script>
+<script>window.APP_VERSION = '1.7.8';</script>
 <script src="js/pwa.js" defer></script>
 </body>
 </html>
