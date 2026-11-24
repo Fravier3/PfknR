@@ -1,10 +1,10 @@
 // Service worker de Puerto Rico 3D: precache del núcleo, red primero para index y version.json,
 // y "stale-while-revalidate" para los datos de barrios, comunidades, subbarrios y sectores.
-const CACHE = 'pfknr-v1.7.3';
+const CACHE = 'pfknr-v1.7.4';
 const DATA_CACHE = 'pfknr-datos';   // lo que se guarda con "Guardar todo para usar sin internet"
 const CORE = [
   './', './index.html', './manifest.webmanifest', './version.json', './favicon.png',
-  './css/fonts.css', './js/pwa.js', './js/polymap-urban.js', './js/polymap-detail.js?v=1.7.0', './js/satellite.js?v=1.7.3',
+  './css/fonts.css', './js/pwa.js', './js/polymap-urban.js', './js/polymap-detail.js?v=1.7.0', './js/satellite.js?v=1.7.4',
   './libs/three.min.js', './libs/OrbitControls.js', './libs/motion.js',
   './libs/fonts/inter-400.woff2', './libs/fonts/inter-500.woff2', './libs/fonts/inter-600.woff2', './libs/fonts/inter-700.woff2',
   './libs/fonts/sora-500.woff2', './libs/fonts/sora-700.woff2', './libs/fonts/ibm-plex-mono-400.woff2', './libs/fonts/ibm-plex-mono-500.woff2',

@@ -16,7 +16,7 @@ Niveles de zoom: isla → municipio (ficha y barrios pintados) → barrio (subba
 - **Satélite** abre una vista cenital de fotografías aéreas del USDA y USGS The National Map. Reemplaza el relieve ilustrado y las capas urbanas del mapa. Las fotografías cargan en línea a medida que mueves el mapa o te acercas.
 - **Capas → Comparar** divide la misma cámara entre el mapa a la izquierda y la fotografía a la derecha. Arrastra el divisor para ver cualquiera de los dos lados. Puedes mostrar calles del mapa del lado izquierdo al acercarte a un pueblo.
 - **Límites** muestra los contornos municipales del Censo en sus coordenadas geográficas, incluyendo los municipios isla. El contorno amarillo marca el municipio abierto.
-- **Casco en satélite**, en la ficha municipal, centra la foto a nivel de calle. La fecha y resolución de las fotografías dependen de la cobertura de USGS. El plano y las fichas guardadas siguen disponibles sin conexión.
+- **Casco en satélite**, en la ficha municipal, alterna entre el mapa y la foto conservando el encuadre. Los límites de los barrios del municipio seleccionado aparecen en blanco. La fecha y resolución de las fotografías dependen de la cobertura de USGS. El plano y las fichas guardadas siguen disponibles sin conexión.
 - Las capas urbanas de **Calles** y **Parques y vegetación** se controlan por separado. Las calles usan geometrías cartografiadas. Los árboles individuales se representan de forma ilustrativa en el mapa 3D.
 
 ## Navegación

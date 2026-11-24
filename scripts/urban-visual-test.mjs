@@ -57,9 +57,11 @@ async function checkSatellite() {
   writeFileSync(out + '/satelite-isla.png', island);
   for (const town of ['Cayey', 'Culebra']) {
     await page.evaluate(name => PRMap.select(name), town);
-    const detail = page.waitForResponse(r => r.ok() && r.url().includes('/USGSNAIPPlus/ImageServer/exportImage'), {timeout:30000});
-    await page.locator('#city-photo').click();
-    await detail;
+    const toggle = page.locator('#city-photo');
+    await toggle.click();
+    if (await toggle.getAttribute('aria-pressed') !== 'false') throw Error('Falta el mapa original');
+    await toggle.click();
+    if (await toggle.getAttribute('aria-pressed') !== 'true') throw Error('Falta la vista satelital');
     await page.waitForFunction(() => document.querySelector('#photo-status').textContent === '', null, {timeout:35000});
     const photo = await shot();
     if (assess(photo).colors16 < 40) throw Error('Falta el detalle de fotografía en ' + town);

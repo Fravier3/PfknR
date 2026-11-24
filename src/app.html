@@ -478,7 +478,7 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 <script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
 <script src="js/polymap-urban.js"></script>
 <script src="js/polymap-detail.js?v=1.7.0"></script>
-<script src="js/satellite.js?v=1.7.3"></script>
+<script src="js/satellite.js?v=1.7.4"></script>
 <script>
 (async () => {
   'use strict';
@@ -897,7 +897,6 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
 
   // ---------- Exageración vertical ----------
   let basemap = 'map';
-  let cascoVisit = null;
   let EXS = 4, EX = 4, solid = false;   // EXS: valor del control; EX: el que se usa (casi 0 en modo sólido)
   function setExag(v) { EXS = v; EX = solid || basemap !== 'map' ? 0.002 : v; exGroup.scale.y = EX; $('t-exag-v').textContent = '×' + v; }
   setExag(4);
@@ -1499,7 +1498,6 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   const fmtLL = ([lon, lat]) => `${lat.toFixed(3)}°N ${Math.abs(lon).toFixed(3)}°O`;
   function select(i, { fly = true } = {}) {
     if (!GPS.internal && GPS.watch != null) { GPS.userActed = true; if (GPS.auto) setAuto(false); }
-    if (i !== selected || fly) setCascoVisit(null);
     if (i === selected && i !== -1) { if (fly) { if (URBAN.on) showUrbanForSelected(); else flyToMuni(i); } return; }
     selected = i; uni.selId.value = i; paintIslands(); setSelLines(i);
     app.classList.toggle('has-sel', i >= 0);
@@ -2329,15 +2327,8 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   function photoMinDistance() {
     return size.h * .0005 / (2 * Math.tan(THREE.MathUtils.degToRad(FOV0 / 2)));
   }
-  function setCascoVisit(visit) {
-    cascoVisit = visit;
-    const button = $('city-photo');
-    button.setAttribute('aria-pressed', String(Boolean(visit)));
-    button.textContent = visit ? 'Volver al mapa original' : 'Casco en satélite';
-  }
   function setBasemap(mode) {
     if (basemap === mode) return;
-    setCascoVisit(null);
     const wasPhoto = basemap !== 'map';
     const photo = mode !== 'map';
     const center = controls.target.clone();
@@ -2355,14 +2346,16 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
     setExag(EXS);
     if (photo !== wasPhoto) {
       imagery.setActive(photo);
-      camera.near = photo ? .015 : 2;
+      camera.near = photo ? .015 : Math.min(2, distance * .02);
       camera.updateProjectionMatrix();
-      controls.minDistance = photo ? photoMinDistance() : 8;
+      controls.minDistance = Math.min(distance, photo ? photoMinDistance() : 8);
       center.y = 0;
-      flyTo(center, center.clone().add(viewDir().multiplyScalar(Math.max(distance, controls.minDistance))), 0);
+      flyTo(center, center.clone().add(viewDir().multiplyScalar(distance)), 0);
     }
     app.dataset.basemap = mode;
     for (const b of modes) b.setAttribute('aria-pressed', String(b.dataset.basemap === mode));
+    $('city-photo').setAttribute('aria-pressed', String(mode === 'satellite'));
+    $('city-photo').textContent = mode === 'satellite' ? 'Volver al mapa original' : 'Casco en satélite';
     photoButton.textContent = photo ? 'Volver al mapa' : 'Satélite';
     photoButton.setAttribute('aria-pressed', String(photo));
     $('photo-meta').hidden = !photo;
@@ -2385,22 +2378,9 @@ button:focus-visible, #list li:focus-visible, input:focus-visible { outline: 2px
   });
   $('photo-retry').addEventListener('click', imagery.retry);
   window.addEventListener('online', imagery.retry);
-  $('city-photo').addEventListener('click', async () => {
-    const i = selected;
-    if (i < 0) return;
+  $('city-photo').addEventListener('click', () => {
+    setBasemap(basemap === 'satellite' ? 'map' : 'satellite');
     closeSheets();
-    if (cascoVisit && cascoVisit.municipality === i) {
-      setBasemap('map');
-      flyToMuni(i);
-      return;
-    }
-    setBasemap('satellite');
-    const visit = { municipality: i };
-    setCascoVisit(visit);
-    try { await BAR.ready; } catch (e) { /* Usar la etiqueta municipal si no hay barrios. */ }
-    if (cascoVisit !== visit) return;
-    const [x, y] = proj(...urbanCenter(i));
-    flyToBox({ x0: x - .38, x1: x + .38, y0: y - .28, y1: y + .28 }, .6);
   });
 
   function renderMap() {

@@ -46,8 +46,26 @@
       color: '#ffcf67', transparent: true, depthTest: false, depthWrite: false
     });
     const outlines = makeOutline(municipalities.flatMap(m => m.polys), municipalLines, 3);
-    const barrioMaterial = new THREE.LineBasicMaterial({
-      color: '#000000', transparent: true, depthTest: false, depthWrite: false
+    const barrioMaterial = new THREE.ShaderMaterial({
+      uniforms: { viewportSize: { value: new THREE.Vector2(1, 1) } },
+      vertexShader: `
+        uniform vec2 viewportSize;
+        attribute vec3 startPoint, endPoint;
+        varying float edge;
+        void main() {
+          vec4 a = projectionMatrix * modelViewMatrix * vec4(startPoint, 1.);
+          vec4 b = projectionMatrix * modelViewMatrix * vec4(endPoint, 1.);
+          vec2 delta = (b.xy / b.w - a.xy / a.w) * viewportSize;
+          vec2 normal = vec2(-delta.y, delta.x) / max(length(delta), .00001);
+          vec4 clip = mix(a, b, position.x);
+          edge = position.y;
+          clip.xy += normal * edge * 3.5 / viewportSize * clip.w;
+          gl_Position = clip;
+        }`,
+      fragmentShader: `
+        varying float edge;
+        void main() { gl_FragColor = vec4(vec3(1.), 1. - smoothstep(.72, 1., abs(edge))); }`,
+      side: THREE.DoubleSide, transparent: true, depthTest: false, depthWrite: false
     });
     let barrioSource = null, barrioOutline = null;
     let selectedOutline = null;
@@ -71,6 +89,20 @@
           const [x2, y2] = project(...ring[i]);
           if (x1 !== x2 || y1 !== y2) vertices.push(x1, 0, -y1, x2, 0, -y2);
         }
+      }
+      if (order === 2 && material === barrioMaterial) {
+        const geometry = new THREE.InstancedBufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute([0,-1,0, 1,-1,0, 1,1,0, 0,1,0], 3));
+        geometry.setIndex([0,1,2, 0,2,3]);
+        const segments = new THREE.InstancedInterleavedBuffer(new Float32Array(vertices), 6);
+        geometry.setAttribute('startPoint', new THREE.InterleavedBufferAttribute(segments, 3, 0));
+        geometry.setAttribute('endPoint', new THREE.InterleavedBufferAttribute(segments, 3, 3));
+        geometry.instanceCount = vertices.length / 6;
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.layers.set(LAYER);
+        mesh.renderOrder = order;
+        mesh.frustumCulled = false;
+        return mesh;
       }
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
@@ -222,6 +254,7 @@
     }
 
     function update(camera, size, from = -1) {
+      barrioMaterial.uniforms.viewportSize.value.set(size.w, size.h);
       const now = performance.now();
       if (!active || now < nextUpdate) return;
       nextUpdate = now + 100;
